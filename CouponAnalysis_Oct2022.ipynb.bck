@@ -1,0 +1,4477 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Will a Customer Accept the Coupon?\n",
+    "\n",
+    "**Context**\n",
+    "\n",
+    "Imagine driving through town and a coupon is delivered to your cell phone for a restaraunt near where you are driving. Would you accept that coupon and take a short detour to the restaraunt? Would you accept the coupon but use it on a sunbsequent trip? Would you ignore the coupon entirely? What if the coupon was for a bar instead of a restaraunt? What about a coffee house? Would you accept a bar coupon with a minor passenger in the car? What about if it was just you and your partner in the car? Would weather impact the rate of acceptance? What about the time of day?\n",
+    "\n",
+    "Obviously, proximity to the business is a factor on whether the coupon is delivered to the driver or not, but what are the factors that determine whether a driver accepts the coupon once it is delivered to them? How would you determine whether a driver is likely to accept a coupon?\n",
+    "\n",
+    "**Overview**\n",
+    "\n",
+    "The goal of this project is to use what you know about visualizations and probability distributions to distinguish between customers who accepted a driving coupon versus those that did not.\n",
+    "\n",
+    "**Data**\n",
+    "\n",
+    "This data comes to us from the UCI Machine Learning repository and was collected via a survey on Amazon Mechanical Turk. The survey describes different driving scenarios including the destination, current time, weather, passenger, etc., and then ask the person whether he will accept the coupon if he is the driver. Answers that the user will drive there ‘right away’ or ‘later before the coupon expires’ are labeled as ‘Y = 1’ and answers ‘no, I do not want the coupon’ are labeled as ‘Y = 0’.  There are five different types of coupons -- less expensive restaurants (under \\\\$20), coffee houses, carry out & take away, bar, and more expensive restaurants (\\\\$20 - \\\\$50). "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Deliverables**\n",
+    "\n",
+    "Your final product should be a brief report that highlights the differences between customers who did and did not accept the coupons.  To explore the data you will utilize your knowledge of plotting, statistical summaries, and visualization using Python. You will publish your findings in a public facing github repository as your first portfolio piece. \n",
+    "\n",
+    "\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Data Description\n",
+    "\n",
+    "The attributes of this data set include:\n",
+    "1. User attributes\n",
+    "    -  Gender: male, female\n",
+    "    -  Age: below 21, 21 to 25, 26 to 30, etc.\n",
+    "    -  Marital Status: single, married partner, unmarried partner, or widowed\n",
+    "    -  Number of children: 0, 1, or more than 1\n",
+    "    -  Education: high school, bachelors degree, associates degree, or graduate degree\n",
+    "    -  Occupation: architecture & engineering, business & financial, etc.\n",
+    "    -  Annual income: less than \\\\$12500, \\\\$12500 - \\\\$24999, \\\\$25000 - \\\\$37499, etc.\n",
+    "    -  Number of times that he/she goes to a bar: 0, less than 1, 1 to 3, 4 to 8 or greater than 8\n",
+    "    -  Number of times that he/she buys takeaway food: 0, less than 1, 1 to 3, 4 to 8 or greater\n",
+    "    than 8\n",
+    "    -  Number of times that he/she goes to a coffee house: 0, less than 1, 1 to 3, 4 to 8 or\n",
+    "    greater than 8\n",
+    "    -  Number of times that he/she eats at a restaurant with average expense less than \\\\$20 per\n",
+    "    person: 0, less than 1, 1 to 3, 4 to 8 or greater than 8\n",
+    "    -  Number of times that he/she goes to a bar: 0, less than 1, 1 to 3, 4 to 8 or greater than 8\n",
+    "    \n",
+    "\n",
+    "2. Contextual attributes\n",
+    "    - Driving destination: home, work, or no urgent destination\n",
+    "    - Location of user, coupon and destination: we provide a map to show the geographical\n",
+    "    location of the user, destination, and the venue, and we mark the distance between each\n",
+    "    two places with time of driving. The user can see whether the venue is in the same\n",
+    "    direction as the destination.\n",
+    "    - Weather: sunny, rainy, or snowy\n",
+    "    - Temperature: 30F, 55F, or 80F\n",
+    "    - Time: 10AM, 2PM, or 6PM\n",
+    "    - Passenger: alone, partner, kid(s), or friend(s)\n",
+    "\n",
+    "\n",
+    "3. Coupon attributes\n",
+    "    - time before it expires: 2 hours or one day"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 42,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import matplotlib.pyplot as plt\n",
+    "import seaborn as sns\n",
+    "import pandas as pd\n",
+    "import numpy as np\n",
+    "import plotly.express as px"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Problems\n",
+    "\n",
+    "Use the prompts below to get started with your data analysis.  \n",
+    "\n",
+    "1. Read in the `coupons.csv` file.\n",
+    "\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "data = pd.read_csv('data/coupons.csv')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 66,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>destination</th>\n",
+       "      <th>passanger</th>\n",
+       "      <th>weather</th>\n",
+       "      <th>temperature</th>\n",
+       "      <th>time</th>\n",
+       "      <th>coupon</th>\n",
+       "      <th>expiration</th>\n",
+       "      <th>gender</th>\n",
+       "      <th>age</th>\n",
+       "      <th>maritalStatus</th>\n",
+       "      <th>...</th>\n",
+       "      <th>CoffeeHouse</th>\n",
+       "      <th>CarryAway</th>\n",
+       "      <th>RestaurantLessThan20</th>\n",
+       "      <th>Restaurant20To50</th>\n",
+       "      <th>toCoupon_GEQ5min</th>\n",
+       "      <th>toCoupon_GEQ15min</th>\n",
+       "      <th>toCoupon_GEQ25min</th>\n",
+       "      <th>direction_same</th>\n",
+       "      <th>direction_opp</th>\n",
+       "      <th>Y</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>0</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Alone</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>55</td>\n",
+       "      <td>2PM</td>\n",
+       "      <td>Restaurant(&lt;20)</td>\n",
+       "      <td>1d</td>\n",
+       "      <td>Female</td>\n",
+       "      <td>21</td>\n",
+       "      <td>Unmarried partner</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>1</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Friend(s)</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>80</td>\n",
+       "      <td>10AM</td>\n",
+       "      <td>Coffee House</td>\n",
+       "      <td>2h</td>\n",
+       "      <td>Female</td>\n",
+       "      <td>21</td>\n",
+       "      <td>Unmarried partner</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>2</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Friend(s)</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>80</td>\n",
+       "      <td>10AM</td>\n",
+       "      <td>Carry out &amp; Take away</td>\n",
+       "      <td>2h</td>\n",
+       "      <td>Female</td>\n",
+       "      <td>21</td>\n",
+       "      <td>Unmarried partner</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>3</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Friend(s)</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>80</td>\n",
+       "      <td>2PM</td>\n",
+       "      <td>Coffee House</td>\n",
+       "      <td>2h</td>\n",
+       "      <td>Female</td>\n",
+       "      <td>21</td>\n",
+       "      <td>Unmarried partner</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>4</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Friend(s)</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>80</td>\n",
+       "      <td>2PM</td>\n",
+       "      <td>Coffee House</td>\n",
+       "      <td>1d</td>\n",
+       "      <td>Female</td>\n",
+       "      <td>21</td>\n",
+       "      <td>Unmarried partner</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "<p>5 rows × 25 columns</p>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "       destination  passanger weather  temperature  time  \\\n",
+       "0  No Urgent Place      Alone   Sunny           55   2PM   \n",
+       "1  No Urgent Place  Friend(s)   Sunny           80  10AM   \n",
+       "2  No Urgent Place  Friend(s)   Sunny           80  10AM   \n",
+       "3  No Urgent Place  Friend(s)   Sunny           80   2PM   \n",
+       "4  No Urgent Place  Friend(s)   Sunny           80   2PM   \n",
+       "\n",
+       "                  coupon expiration  gender age      maritalStatus  ...  \\\n",
+       "0        Restaurant(<20)         1d  Female  21  Unmarried partner  ...   \n",
+       "1           Coffee House         2h  Female  21  Unmarried partner  ...   \n",
+       "2  Carry out & Take away         2h  Female  21  Unmarried partner  ...   \n",
+       "3           Coffee House         2h  Female  21  Unmarried partner  ...   \n",
+       "4           Coffee House         1d  Female  21  Unmarried partner  ...   \n",
+       "\n",
+       "   CoffeeHouse CarryAway RestaurantLessThan20 Restaurant20To50  \\\n",
+       "0        never       NaN                  4~8              1~3   \n",
+       "1        never       NaN                  4~8              1~3   \n",
+       "2        never       NaN                  4~8              1~3   \n",
+       "3        never       NaN                  4~8              1~3   \n",
+       "4        never       NaN                  4~8              1~3   \n",
+       "\n",
+       "  toCoupon_GEQ5min toCoupon_GEQ15min toCoupon_GEQ25min direction_same  \\\n",
+       "0                1                 0                 0              0   \n",
+       "1                1                 0                 0              0   \n",
+       "2                1                 1                 0              0   \n",
+       "3                1                 1                 0              0   \n",
+       "4                1                 1                 0              0   \n",
+       "\n",
+       "  direction_opp  Y  \n",
+       "0             1  1  \n",
+       "1             1  0  \n",
+       "2             1  1  \n",
+       "3             1  0  \n",
+       "4             1  0  \n",
+       "\n",
+       "[5 rows x 25 columns]"
+      ]
+     },
+     "execution_count": 66,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "data.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 77,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "<class 'pandas.core.frame.DataFrame'>\n",
+      "RangeIndex: 12684 entries, 0 to 12683\n",
+      "Data columns (total 25 columns):\n",
+      " #   Column                Non-Null Count  Dtype \n",
+      "---  ------                --------------  ----- \n",
+      " 0   destination           12684 non-null  object\n",
+      " 1   passanger             12684 non-null  object\n",
+      " 2   weather               12684 non-null  object\n",
+      " 3   temperature           12684 non-null  int64 \n",
+      " 4   time                  12684 non-null  object\n",
+      " 5   coupon                12684 non-null  object\n",
+      " 6   expiration            12684 non-null  object\n",
+      " 7   gender                12684 non-null  object\n",
+      " 8   age                   12684 non-null  object\n",
+      " 9   maritalStatus         12684 non-null  object\n",
+      " 10  has_children          12684 non-null  int64 \n",
+      " 11  education             12684 non-null  object\n",
+      " 12  occupation            12684 non-null  object\n",
+      " 13  income                12684 non-null  object\n",
+      " 14  Bar                   12577 non-null  object\n",
+      " 15  CoffeeHouse           12467 non-null  object\n",
+      " 16  CarryAway             12533 non-null  object\n",
+      " 17  RestaurantLessThan20  12554 non-null  object\n",
+      " 18  Restaurant20To50      12495 non-null  object\n",
+      " 19  toCoupon_GEQ5min      12684 non-null  int64 \n",
+      " 20  toCoupon_GEQ15min     12684 non-null  int64 \n",
+      " 21  toCoupon_GEQ25min     12684 non-null  int64 \n",
+      " 22  direction_same        12684 non-null  int64 \n",
+      " 23  direction_opp         12684 non-null  int64 \n",
+      " 24  Y                     12684 non-null  int64 \n",
+      "dtypes: int64(8), object(17)\n",
+      "memory usage: 2.4+ MB\n"
+     ]
+    }
+   ],
+   "source": [
+    "data.info()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "2. Investigate the dataset for missing or problematic data."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 36,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "destination               0\n",
+       "passanger                 0\n",
+       "weather                   0\n",
+       "temperature               0\n",
+       "time                      0\n",
+       "coupon                    0\n",
+       "expiration                0\n",
+       "gender                    0\n",
+       "age                       0\n",
+       "maritalStatus             0\n",
+       "has_children              0\n",
+       "education                 0\n",
+       "occupation                0\n",
+       "income                    0\n",
+       "Bar                     107\n",
+       "CoffeeHouse             217\n",
+       "CarryAway               151\n",
+       "RestaurantLessThan20    130\n",
+       "Restaurant20To50        189\n",
+       "toCoupon_GEQ5min          0\n",
+       "toCoupon_GEQ15min         0\n",
+       "toCoupon_GEQ25min         0\n",
+       "direction_same            0\n",
+       "direction_opp             0\n",
+       "Y                         0\n",
+       "dtype: int64"
+      ]
+     },
+     "execution_count": 36,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "#Investigate the problematic data. \n",
+    "#Column car appears to have significant missing values hence consider it dropping from the dataset. \n",
+    "data.isna().sum()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "3. Decide what to do about your missing data -- drop, replace, other..."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 22,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "Index(['destination', 'passanger', 'weather', 'temperature', 'time', 'coupon',\n",
+       "       'expiration', 'gender', 'age', 'maritalStatus', 'has_children',\n",
+       "       'education', 'occupation', 'income', 'Bar', 'CoffeeHouse', 'CarryAway',\n",
+       "       'RestaurantLessThan20', 'Restaurant20To50', 'toCoupon_GEQ5min',\n",
+       "       'toCoupon_GEQ15min', 'toCoupon_GEQ25min', 'direction_same',\n",
+       "       'direction_opp', 'Y'],\n",
+       "      dtype='object')"
+      ]
+     },
+     "execution_count": 22,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "## Drop the column car because it had many missing data. \n",
+    "data = data.drop(columns=['car'])\n",
+    "data.columns"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 154,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "less1    3385\n",
+       "1~3      3225\n",
+       "never    2962\n",
+       "4~8      1784\n",
+       "gt8      1111\n",
+       "NaN       217\n",
+       "Name: CoffeeHouse, dtype: int64"
+      ]
+     },
+     "execution_count": 154,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "#Identify the values in columns. NaN appears to be less so we will replace it with other values. \n",
+    "data['CoffeeHouse'].value_counts(dropna = False)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 155,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# After assessing the values it seems NaN can be replaced with both less 1 and 1~3 equally. I will use parameter limit\n",
+    "#to fill the values\n",
+    "\n",
+    "data['CoffeeHouse'].fillna('less1', limit=100, inplace=True)\n",
+    "data['CoffeeHouse'].fillna('1~3', limit=117, inplace=True)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 156,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "less1    3485\n",
+       "1~3      3342\n",
+       "never    2962\n",
+       "4~8      1784\n",
+       "gt8      1111\n",
+       "Name: CoffeeHouse, dtype: int64"
+      ]
+     },
+     "execution_count": 156,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "#Check the values again\n",
+    "data['CoffeeHouse'].value_counts(dropna = False)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "4. What proportion of the total observations chose to accept the coupon? \n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 81,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>Y</th>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>coupon</th>\n",
+       "      <th></th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>Bar</th>\n",
+       "      <td>827</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>Carry out &amp; Take away</th>\n",
+       "      <td>1760</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>Coffee House</th>\n",
+       "      <td>1995</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>Restaurant(20-50)</th>\n",
+       "      <td>658</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>Restaurant(&lt;20)</th>\n",
+       "      <td>1970</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "                          Y\n",
+       "coupon                     \n",
+       "Bar                     827\n",
+       "Carry out & Take away  1760\n",
+       "Coffee House           1995\n",
+       "Restaurant(20-50)       658\n",
+       "Restaurant(<20)        1970"
+      ]
+     },
+     "execution_count": 81,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "#Identify the type of coupons accpeted\n",
+    "data.groupby('coupon').agg(sum)[['Y']]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 168,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "Text(0.5, 1.0, 'The total observations chose to accept the coupon')"
+      ]
+     },
+     "execution_count": 168,
+     "metadata": {},
+     "output_type": "execute_result"
+    },
+    {
+     "data": {
+      "image/png": "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\n",
+      "text/plain": [
+       "<Figure size 432x288 with 1 Axes>"
+      ]
+     },
+     "metadata": {
+      "needs_background": "light"
+     },
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "# Animation of the accpeted coupons. 1 shows the coupons were accepted and 0 otherwise. \n",
+    "data['Y'].value_counts().plot(kind = 'bar')\n",
+    "plt.xticks(rotation = 'horizontal')\n",
+    "plt.title('The total observations chose to accept the coupon')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 180,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "1    0.568433\n",
+       "0    0.431567\n",
+       "Name: Y, dtype: float64"
+      ]
+     },
+     "execution_count": 180,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "# Calculate ratio of coupons accpeted\n",
+    "data['Y'].value_counts(normalize = True)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 195,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "Coffee House             3996\n",
+       "Restaurant(<20)          2786\n",
+       "Carry out & Take away    2393\n",
+       "Bar                      2017\n",
+       "Restaurant(20-50)        1492\n",
+       "Name: coupon, dtype: int64"
+      ]
+     },
+     "execution_count": 195,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "# Calculate ratio of coupon accepeted by the type of coupons. \n",
+    "data['coupon'].value_counts(dropna=True)\n",
+    "#data.groupby('coupon').agg(sum)[['Y']] / data['Y'].value_counts().agg(sum)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 215,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>Y</th>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>coupon</th>\n",
+       "      <th></th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>Bar</th>\n",
+       "      <td>0.065200</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>Carry out &amp; Take away</th>\n",
+       "      <td>0.138757</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>Coffee House</th>\n",
+       "      <td>0.157285</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>Restaurant(20-50)</th>\n",
+       "      <td>0.051876</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>Restaurant(&lt;20)</th>\n",
+       "      <td>0.155314</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "                              Y\n",
+       "coupon                         \n",
+       "Bar                    0.065200\n",
+       "Carry out & Take away  0.138757\n",
+       "Coffee House           0.157285\n",
+       "Restaurant(20-50)      0.051876\n",
+       "Restaurant(<20)        0.155314"
+      ]
+     },
+     "execution_count": 215,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "data.groupby('coupon').agg(sum)[['Y']] / data['Y'].value_counts().agg(sum)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "5. Use a bar plot to visualize the `coupon` column."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 223,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "application/vnd.plotly.v1+json": {
+       "config": {
+        "plotlyServerURL": "https://plot.ly"
+       },
+       "data": [
+        {
+         "alignmentgroup": "True",
+         "hovertemplate": "variable=coupon<br>coupon=%{x}<br>count=%{y}<extra></extra>",
+         "legendgroup": "coupon",
+         "marker": {
+          "color": "#636efa",
+          "pattern": {
+           "shape": ""
+          }
+         },
+         "name": "coupon",
+         "offsetgroup": "coupon",
+         "orientation": "v",
+         "showlegend": true,
+         "textposition": "auto",
+         "type": "bar",
+         "x": [
+          "Coffee House",
+          "Restaurant(<20)",
+          "Carry out & Take away",
+          "Bar",
+          "Restaurant(20-50)"
+         ],
+         "xaxis": "x",
+         "y": [
+          3996,
+          2786,
+          2393,
+          2017,
+          1492
+         ],
+         "yaxis": "y"
+        }
+       ],
+       "layout": {
+        "barmode": "relative",
+        "legend": {
+         "title": {
+          "text": "variable"
+         },
+         "tracegroupgap": 0
+        },
+        "template": {
+         "data": {
+          "bar": [
+           {
+            "error_x": {
+             "color": "#2a3f5f"
+            },
+            "error_y": {
+             "color": "#2a3f5f"
+            },
+            "marker": {
+             "line": {
+              "color": "#E5ECF6",
+              "width": 0.5
+             },
+             "pattern": {
+              "fillmode": "overlay",
+              "size": 10,
+              "solidity": 0.2
+             }
+            },
+            "type": "bar"
+           }
+          ],
+          "barpolar": [
+           {
+            "marker": {
+             "line": {
+              "color": "#E5ECF6",
+              "width": 0.5
+             },
+             "pattern": {
+              "fillmode": "overlay",
+              "size": 10,
+              "solidity": 0.2
+             }
+            },
+            "type": "barpolar"
+           }
+          ],
+          "carpet": [
+           {
+            "aaxis": {
+             "endlinecolor": "#2a3f5f",
+             "gridcolor": "white",
+             "linecolor": "white",
+             "minorgridcolor": "white",
+             "startlinecolor": "#2a3f5f"
+            },
+            "baxis": {
+             "endlinecolor": "#2a3f5f",
+             "gridcolor": "white",
+             "linecolor": "white",
+             "minorgridcolor": "white",
+             "startlinecolor": "#2a3f5f"
+            },
+            "type": "carpet"
+           }
+          ],
+          "choropleth": [
+           {
+            "colorbar": {
+             "outlinewidth": 0,
+             "ticks": ""
+            },
+            "type": "choropleth"
+           }
+          ],
+          "contour": [
+           {
+            "colorbar": {
+             "outlinewidth": 0,
+             "ticks": ""
+            },
+            "colorscale": [
+             [
+              0,
+              "#0d0887"
+             ],
+             [
+              0.1111111111111111,
+              "#46039f"
+             ],
+             [
+              0.2222222222222222,
+              "#7201a8"
+             ],
+             [
+              0.3333333333333333,
+              "#9c179e"
+             ],
+             [
+              0.4444444444444444,
+              "#bd3786"
+             ],
+             [
+              0.5555555555555556,
+              "#d8576b"
+             ],
+             [
+              0.6666666666666666,
+              "#ed7953"
+             ],
+             [
+              0.7777777777777778,
+              "#fb9f3a"
+             ],
+             [
+              0.8888888888888888,
+              "#fdca26"
+             ],
+             [
+              1,
+              "#f0f921"
+             ]
+            ],
+            "type": "contour"
+           }
+          ],
+          "contourcarpet": [
+           {
+            "colorbar": {
+             "outlinewidth": 0,
+             "ticks": ""
+            },
+            "type": "contourcarpet"
+           }
+          ],
+          "heatmap": [
+           {
+            "colorbar": {
+             "outlinewidth": 0,
+             "ticks": ""
+            },
+            "colorscale": [
+             [
+              0,
+              "#0d0887"
+             ],
+             [
+              0.1111111111111111,
+              "#46039f"
+             ],
+             [
+              0.2222222222222222,
+              "#7201a8"
+             ],
+             [
+              0.3333333333333333,
+              "#9c179e"
+             ],
+             [
+              0.4444444444444444,
+              "#bd3786"
+             ],
+             [
+              0.5555555555555556,
+              "#d8576b"
+             ],
+             [
+              0.6666666666666666,
+              "#ed7953"
+             ],
+             [
+              0.7777777777777778,
+              "#fb9f3a"
+             ],
+             [
+              0.8888888888888888,
+              "#fdca26"
+             ],
+             [
+              1,
+              "#f0f921"
+             ]
+            ],
+            "type": "heatmap"
+           }
+          ],
+          "heatmapgl": [
+           {
+            "colorbar": {
+             "outlinewidth": 0,
+             "ticks": ""
+            },
+            "colorscale": [
+             [
+              0,
+              "#0d0887"
+             ],
+             [
+              0.1111111111111111,
+              "#46039f"
+             ],
+             [
+              0.2222222222222222,
+              "#7201a8"
+             ],
+             [
+              0.3333333333333333,
+              "#9c179e"
+             ],
+             [
+              0.4444444444444444,
+              "#bd3786"
+             ],
+             [
+              0.5555555555555556,
+              "#d8576b"
+             ],
+             [
+              0.6666666666666666,
+              "#ed7953"
+             ],
+             [
+              0.7777777777777778,
+              "#fb9f3a"
+             ],
+             [
+              0.8888888888888888,
+              "#fdca26"
+             ],
+             [
+              1,
+              "#f0f921"
+             ]
+            ],
+            "type": "heatmapgl"
+           }
+          ],
+          "histogram": [
+           {
+            "marker": {
+             "pattern": {
+              "fillmode": "overlay",
+              "size": 10,
+              "solidity": 0.2
+             }
+            },
+            "type": "histogram"
+           }
+          ],
+          "histogram2d": [
+           {
+            "colorbar": {
+             "outlinewidth": 0,
+             "ticks": ""
+            },
+            "colorscale": [
+             [
+              0,
+              "#0d0887"
+             ],
+             [
+              0.1111111111111111,
+              "#46039f"
+             ],
+             [
+              0.2222222222222222,
+              "#7201a8"
+             ],
+             [
+              0.3333333333333333,
+              "#9c179e"
+             ],
+             [
+              0.4444444444444444,
+              "#bd3786"
+             ],
+             [
+              0.5555555555555556,
+              "#d8576b"
+             ],
+             [
+              0.6666666666666666,
+              "#ed7953"
+             ],
+             [
+              0.7777777777777778,
+              "#fb9f3a"
+             ],
+             [
+              0.8888888888888888,
+              "#fdca26"
+             ],
+             [
+              1,
+              "#f0f921"
+             ]
+            ],
+            "type": "histogram2d"
+           }
+          ],
+          "histogram2dcontour": [
+           {
+            "colorbar": {
+             "outlinewidth": 0,
+             "ticks": ""
+            },
+            "colorscale": [
+             [
+              0,
+              "#0d0887"
+             ],
+             [
+              0.1111111111111111,
+              "#46039f"
+             ],
+             [
+              0.2222222222222222,
+              "#7201a8"
+             ],
+             [
+              0.3333333333333333,
+              "#9c179e"
+             ],
+             [
+              0.4444444444444444,
+              "#bd3786"
+             ],
+             [
+              0.5555555555555556,
+              "#d8576b"
+             ],
+             [
+              0.6666666666666666,
+              "#ed7953"
+             ],
+             [
+              0.7777777777777778,
+              "#fb9f3a"
+             ],
+             [
+              0.8888888888888888,
+              "#fdca26"
+             ],
+             [
+              1,
+              "#f0f921"
+             ]
+            ],
+            "type": "histogram2dcontour"
+           }
+          ],
+          "mesh3d": [
+           {
+            "colorbar": {
+             "outlinewidth": 0,
+             "ticks": ""
+            },
+            "type": "mesh3d"
+           }
+          ],
+          "parcoords": [
+           {
+            "line": {
+             "colorbar": {
+              "outlinewidth": 0,
+              "ticks": ""
+             }
+            },
+            "type": "parcoords"
+           }
+          ],
+          "pie": [
+           {
+            "automargin": true,
+            "type": "pie"
+           }
+          ],
+          "scatter": [
+           {
+            "fillpattern": {
+             "fillmode": "overlay",
+             "size": 10,
+             "solidity": 0.2
+            },
+            "type": "scatter"
+           }
+          ],
+          "scatter3d": [
+           {
+            "line": {
+             "colorbar": {
+              "outlinewidth": 0,
+              "ticks": ""
+             }
+            },
+            "marker": {
+             "colorbar": {
+              "outlinewidth": 0,
+              "ticks": ""
+             }
+            },
+            "type": "scatter3d"
+           }
+          ],
+          "scattercarpet": [
+           {
+            "marker": {
+             "colorbar": {
+              "outlinewidth": 0,
+              "ticks": ""
+             }
+            },
+            "type": "scattercarpet"
+           }
+          ],
+          "scattergeo": [
+           {
+            "marker": {
+             "colorbar": {
+              "outlinewidth": 0,
+              "ticks": ""
+             }
+            },
+            "type": "scattergeo"
+           }
+          ],
+          "scattergl": [
+           {
+            "marker": {
+             "colorbar": {
+              "outlinewidth": 0,
+              "ticks": ""
+             }
+            },
+            "type": "scattergl"
+           }
+          ],
+          "scattermapbox": [
+           {
+            "marker": {
+             "colorbar": {
+              "outlinewidth": 0,
+              "ticks": ""
+             }
+            },
+            "type": "scattermapbox"
+           }
+          ],
+          "scatterpolar": [
+           {
+            "marker": {
+             "colorbar": {
+              "outlinewidth": 0,
+              "ticks": ""
+             }
+            },
+            "type": "scatterpolar"
+           }
+          ],
+          "scatterpolargl": [
+           {
+            "marker": {
+             "colorbar": {
+              "outlinewidth": 0,
+              "ticks": ""
+             }
+            },
+            "type": "scatterpolargl"
+           }
+          ],
+          "scatterternary": [
+           {
+            "marker": {
+             "colorbar": {
+              "outlinewidth": 0,
+              "ticks": ""
+             }
+            },
+            "type": "scatterternary"
+           }
+          ],
+          "surface": [
+           {
+            "colorbar": {
+             "outlinewidth": 0,
+             "ticks": ""
+            },
+            "colorscale": [
+             [
+              0,
+              "#0d0887"
+             ],
+             [
+              0.1111111111111111,
+              "#46039f"
+             ],
+             [
+              0.2222222222222222,
+              "#7201a8"
+             ],
+             [
+              0.3333333333333333,
+              "#9c179e"
+             ],
+             [
+              0.4444444444444444,
+              "#bd3786"
+             ],
+             [
+              0.5555555555555556,
+              "#d8576b"
+             ],
+             [
+              0.6666666666666666,
+              "#ed7953"
+             ],
+             [
+              0.7777777777777778,
+              "#fb9f3a"
+             ],
+             [
+              0.8888888888888888,
+              "#fdca26"
+             ],
+             [
+              1,
+              "#f0f921"
+             ]
+            ],
+            "type": "surface"
+           }
+          ],
+          "table": [
+           {
+            "cells": {
+             "fill": {
+              "color": "#EBF0F8"
+             },
+             "line": {
+              "color": "white"
+             }
+            },
+            "header": {
+             "fill": {
+              "color": "#C8D4E3"
+             },
+             "line": {
+              "color": "white"
+             }
+            },
+            "type": "table"
+           }
+          ]
+         },
+         "layout": {
+          "annotationdefaults": {
+           "arrowcolor": "#2a3f5f",
+           "arrowhead": 0,
+           "arrowwidth": 1
+          },
+          "autotypenumbers": "strict",
+          "coloraxis": {
+           "colorbar": {
+            "outlinewidth": 0,
+            "ticks": ""
+           }
+          },
+          "colorscale": {
+           "diverging": [
+            [
+             0,
+             "#8e0152"
+            ],
+            [
+             0.1,
+             "#c51b7d"
+            ],
+            [
+             0.2,
+             "#de77ae"
+            ],
+            [
+             0.3,
+             "#f1b6da"
+            ],
+            [
+             0.4,
+             "#fde0ef"
+            ],
+            [
+             0.5,
+             "#f7f7f7"
+            ],
+            [
+             0.6,
+             "#e6f5d0"
+            ],
+            [
+             0.7,
+             "#b8e186"
+            ],
+            [
+             0.8,
+             "#7fbc41"
+            ],
+            [
+             0.9,
+             "#4d9221"
+            ],
+            [
+             1,
+             "#276419"
+            ]
+           ],
+           "sequential": [
+            [
+             0,
+             "#0d0887"
+            ],
+            [
+             0.1111111111111111,
+             "#46039f"
+            ],
+            [
+             0.2222222222222222,
+             "#7201a8"
+            ],
+            [
+             0.3333333333333333,
+             "#9c179e"
+            ],
+            [
+             0.4444444444444444,
+             "#bd3786"
+            ],
+            [
+             0.5555555555555556,
+             "#d8576b"
+            ],
+            [
+             0.6666666666666666,
+             "#ed7953"
+            ],
+            [
+             0.7777777777777778,
+             "#fb9f3a"
+            ],
+            [
+             0.8888888888888888,
+             "#fdca26"
+            ],
+            [
+             1,
+             "#f0f921"
+            ]
+           ],
+           "sequentialminus": [
+            [
+             0,
+             "#0d0887"
+            ],
+            [
+             0.1111111111111111,
+             "#46039f"
+            ],
+            [
+             0.2222222222222222,
+             "#7201a8"
+            ],
+            [
+             0.3333333333333333,
+             "#9c179e"
+            ],
+            [
+             0.4444444444444444,
+             "#bd3786"
+            ],
+            [
+             0.5555555555555556,
+             "#d8576b"
+            ],
+            [
+             0.6666666666666666,
+             "#ed7953"
+            ],
+            [
+             0.7777777777777778,
+             "#fb9f3a"
+            ],
+            [
+             0.8888888888888888,
+             "#fdca26"
+            ],
+            [
+             1,
+             "#f0f921"
+            ]
+           ]
+          },
+          "colorway": [
+           "#636efa",
+           "#EF553B",
+           "#00cc96",
+           "#ab63fa",
+           "#FFA15A",
+           "#19d3f3",
+           "#FF6692",
+           "#B6E880",
+           "#FF97FF",
+           "#FECB52"
+          ],
+          "font": {
+           "color": "#2a3f5f"
+          },
+          "geo": {
+           "bgcolor": "white",
+           "lakecolor": "white",
+           "landcolor": "#E5ECF6",
+           "showlakes": true,
+           "showland": true,
+           "subunitcolor": "white"
+          },
+          "hoverlabel": {
+           "align": "left"
+          },
+          "hovermode": "closest",
+          "mapbox": {
+           "style": "light"
+          },
+          "paper_bgcolor": "white",
+          "plot_bgcolor": "#E5ECF6",
+          "polar": {
+           "angularaxis": {
+            "gridcolor": "white",
+            "linecolor": "white",
+            "ticks": ""
+           },
+           "bgcolor": "#E5ECF6",
+           "radialaxis": {
+            "gridcolor": "white",
+            "linecolor": "white",
+            "ticks": ""
+           }
+          },
+          "scene": {
+           "xaxis": {
+            "backgroundcolor": "#E5ECF6",
+            "gridcolor": "white",
+            "gridwidth": 2,
+            "linecolor": "white",
+            "showbackground": true,
+            "ticks": "",
+            "zerolinecolor": "white"
+           },
+           "yaxis": {
+            "backgroundcolor": "#E5ECF6",
+            "gridcolor": "white",
+            "gridwidth": 2,
+            "linecolor": "white",
+            "showbackground": true,
+            "ticks": "",
+            "zerolinecolor": "white"
+           },
+           "zaxis": {
+            "backgroundcolor": "#E5ECF6",
+            "gridcolor": "white",
+            "gridwidth": 2,
+            "linecolor": "white",
+            "showbackground": true,
+            "ticks": "",
+            "zerolinecolor": "white"
+           }
+          },
+          "shapedefaults": {
+           "line": {
+            "color": "#2a3f5f"
+           }
+          },
+          "ternary": {
+           "aaxis": {
+            "gridcolor": "white",
+            "linecolor": "white",
+            "ticks": ""
+           },
+           "baxis": {
+            "gridcolor": "white",
+            "linecolor": "white",
+            "ticks": ""
+           },
+           "bgcolor": "#E5ECF6",
+           "caxis": {
+            "gridcolor": "white",
+            "linecolor": "white",
+            "ticks": ""
+           }
+          },
+          "title": {
+           "x": 0.05
+          },
+          "xaxis": {
+           "automargin": true,
+           "gridcolor": "white",
+           "linecolor": "white",
+           "ticks": "",
+           "title": {
+            "standoff": 15
+           },
+           "zerolinecolor": "white",
+           "zerolinewidth": 2
+          },
+          "yaxis": {
+           "automargin": true,
+           "gridcolor": "white",
+           "linecolor": "white",
+           "ticks": "",
+           "title": {
+            "standoff": 15
+           },
+           "zerolinecolor": "white",
+           "zerolinewidth": 2
+          }
+         }
+        },
+        "title": {
+         "text": "Distribution of coupon"
+        },
+        "xaxis": {
+         "anchor": "y",
+         "domain": [
+          0,
+          1
+         ],
+         "title": {
+          "text": "coupon"
+         }
+        },
+        "yaxis": {
+         "anchor": "x",
+         "domain": [
+          0,
+          1
+         ],
+         "title": {
+          "text": "count"
+         }
+        }
+       }
+      },
+      "text/html": [
+       "<div>                            <div id=\"4eca0c44-12bb-4670-9527-7172a0bd3a2e\" class=\"plotly-graph-div\" style=\"height:525px; width:100%;\"></div>            <script type=\"text/javascript\">                require([\"plotly\"], function(Plotly) {                    window.PLOTLYENV=window.PLOTLYENV || {};                                    if (document.getElementById(\"4eca0c44-12bb-4670-9527-7172a0bd3a2e\")) {                    Plotly.newPlot(                        \"4eca0c44-12bb-4670-9527-7172a0bd3a2e\",                        [{\"alignmentgroup\":\"True\",\"hovertemplate\":\"variable=coupon<br>coupon=%{x}<br>count=%{y}<extra></extra>\",\"legendgroup\":\"coupon\",\"marker\":{\"color\":\"#636efa\",\"pattern\":{\"shape\":\"\"}},\"name\":\"coupon\",\"offsetgroup\":\"coupon\",\"orientation\":\"v\",\"showlegend\":true,\"textposition\":\"auto\",\"x\":[\"Coffee House\",\"Restaurant(<20)\",\"Carry out & Take away\",\"Bar\",\"Restaurant(20-50)\"],\"xaxis\":\"x\",\"y\":[3996,2786,2393,2017,1492],\"yaxis\":\"y\",\"type\":\"bar\"}],                        {\"template\":{\"data\":{\"histogram2dcontour\":[{\"type\":\"histogram2dcontour\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"choropleth\":[{\"type\":\"choropleth\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}],\"histogram2d\":[{\"type\":\"histogram2d\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"heatmap\":[{\"type\":\"heatmap\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"heatmapgl\":[{\"type\":\"heatmapgl\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"contourcarpet\":[{\"type\":\"contourcarpet\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}],\"contour\":[{\"type\":\"contour\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"surface\":[{\"type\":\"surface\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"mesh3d\":[{\"type\":\"mesh3d\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}],\"scatter\":[{\"fillpattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2},\"type\":\"scatter\"}],\"parcoords\":[{\"type\":\"parcoords\",\"line\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatterpolargl\":[{\"type\":\"scatterpolargl\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"bar\":[{\"error_x\":{\"color\":\"#2a3f5f\"},\"error_y\":{\"color\":\"#2a3f5f\"},\"marker\":{\"line\":{\"color\":\"#E5ECF6\",\"width\":0.5},\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"bar\"}],\"scattergeo\":[{\"type\":\"scattergeo\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatterpolar\":[{\"type\":\"scatterpolar\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"histogram\":[{\"marker\":{\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"histogram\"}],\"scattergl\":[{\"type\":\"scattergl\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatter3d\":[{\"type\":\"scatter3d\",\"line\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scattermapbox\":[{\"type\":\"scattermapbox\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatterternary\":[{\"type\":\"scatterternary\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scattercarpet\":[{\"type\":\"scattercarpet\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"carpet\":[{\"aaxis\":{\"endlinecolor\":\"#2a3f5f\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"minorgridcolor\":\"white\",\"startlinecolor\":\"#2a3f5f\"},\"baxis\":{\"endlinecolor\":\"#2a3f5f\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"minorgridcolor\":\"white\",\"startlinecolor\":\"#2a3f5f\"},\"type\":\"carpet\"}],\"table\":[{\"cells\":{\"fill\":{\"color\":\"#EBF0F8\"},\"line\":{\"color\":\"white\"}},\"header\":{\"fill\":{\"color\":\"#C8D4E3\"},\"line\":{\"color\":\"white\"}},\"type\":\"table\"}],\"barpolar\":[{\"marker\":{\"line\":{\"color\":\"#E5ECF6\",\"width\":0.5},\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"barpolar\"}],\"pie\":[{\"automargin\":true,\"type\":\"pie\"}]},\"layout\":{\"autotypenumbers\":\"strict\",\"colorway\":[\"#636efa\",\"#EF553B\",\"#00cc96\",\"#ab63fa\",\"#FFA15A\",\"#19d3f3\",\"#FF6692\",\"#B6E880\",\"#FF97FF\",\"#FECB52\"],\"font\":{\"color\":\"#2a3f5f\"},\"hovermode\":\"closest\",\"hoverlabel\":{\"align\":\"left\"},\"paper_bgcolor\":\"white\",\"plot_bgcolor\":\"#E5ECF6\",\"polar\":{\"bgcolor\":\"#E5ECF6\",\"angularaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"},\"radialaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"}},\"ternary\":{\"bgcolor\":\"#E5ECF6\",\"aaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"},\"baxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"},\"caxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"}},\"coloraxis\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"colorscale\":{\"sequential\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]],\"sequentialminus\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]],\"diverging\":[[0,\"#8e0152\"],[0.1,\"#c51b7d\"],[0.2,\"#de77ae\"],[0.3,\"#f1b6da\"],[0.4,\"#fde0ef\"],[0.5,\"#f7f7f7\"],[0.6,\"#e6f5d0\"],[0.7,\"#b8e186\"],[0.8,\"#7fbc41\"],[0.9,\"#4d9221\"],[1,\"#276419\"]]},\"xaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\",\"title\":{\"standoff\":15},\"zerolinecolor\":\"white\",\"automargin\":true,\"zerolinewidth\":2},\"yaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\",\"title\":{\"standoff\":15},\"zerolinecolor\":\"white\",\"automargin\":true,\"zerolinewidth\":2},\"scene\":{\"xaxis\":{\"backgroundcolor\":\"#E5ECF6\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"white\",\"gridwidth\":2},\"yaxis\":{\"backgroundcolor\":\"#E5ECF6\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"white\",\"gridwidth\":2},\"zaxis\":{\"backgroundcolor\":\"#E5ECF6\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"white\",\"gridwidth\":2}},\"shapedefaults\":{\"line\":{\"color\":\"#2a3f5f\"}},\"annotationdefaults\":{\"arrowcolor\":\"#2a3f5f\",\"arrowhead\":0,\"arrowwidth\":1},\"geo\":{\"bgcolor\":\"white\",\"landcolor\":\"#E5ECF6\",\"subunitcolor\":\"white\",\"showland\":true,\"showlakes\":true,\"lakecolor\":\"white\"},\"title\":{\"x\":0.05},\"mapbox\":{\"style\":\"light\"}}},\"xaxis\":{\"anchor\":\"y\",\"domain\":[0.0,1.0],\"title\":{\"text\":\"coupon\"}},\"yaxis\":{\"anchor\":\"x\",\"domain\":[0.0,1.0],\"title\":{\"text\":\"count\"}},\"legend\":{\"title\":{\"text\":\"variable\"},\"tracegroupgap\":0},\"title\":{\"text\":\"Distribution of coupon\"},\"barmode\":\"relative\"},                        {\"responsive\": true}                    ).then(function(){\n",
+       "                            \n",
+       "var gd = document.getElementById('4eca0c44-12bb-4670-9527-7172a0bd3a2e');\n",
+       "var x = new MutationObserver(function (mutations, observer) {{\n",
+       "        var display = window.getComputedStyle(gd).display;\n",
+       "        if (!display || display === 'none') {{\n",
+       "            console.log([gd, 'removed!']);\n",
+       "            Plotly.purge(gd);\n",
+       "            observer.disconnect();\n",
+       "        }}\n",
+       "}});\n",
+       "\n",
+       "// Listen for the removal of the full notebook cells\n",
+       "var notebookContainer = gd.closest('#notebook-container');\n",
+       "if (notebookContainer) {{\n",
+       "    x.observe(notebookContainer, {childList: true});\n",
+       "}}\n",
+       "\n",
+       "// Listen for the clearing of the current output cell\n",
+       "var outputEl = gd.closest('.output');\n",
+       "if (outputEl) {{\n",
+       "    x.observe(outputEl, {childList: true});\n",
+       "}}\n",
+       "\n",
+       "                        })                };                });            </script>        </div>"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "fig = px.bar(data['coupon'].value_counts(), title = 'Distribution of coupon', labels={'index':'coupon', \n",
+    "                                                                                      'value':'count'})\n",
+    "fig.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "6. Use a histogram to visualize the temperature column."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 240,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "80    6528\n",
+       "55    3840\n",
+       "30    2316\n",
+       "Name: temperature, dtype: int64"
+      ]
+     },
+     "execution_count": 240,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "data['temperature'].value_counts()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 265,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>temperature</th>\n",
+       "      <th>has_children</th>\n",
+       "      <th>toCoupon_GEQ5min</th>\n",
+       "      <th>toCoupon_GEQ15min</th>\n",
+       "      <th>toCoupon_GEQ25min</th>\n",
+       "      <th>direction_same</th>\n",
+       "      <th>direction_opp</th>\n",
+       "      <th>Y</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>temperature</th>\n",
+       "      <td>1.000000</td>\n",
+       "      <td>-0.019716</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>-0.155332</td>\n",
+       "      <td>-0.216254</td>\n",
+       "      <td>0.097085</td>\n",
+       "      <td>-0.097085</td>\n",
+       "      <td>0.061240</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>has_children</th>\n",
+       "      <td>-0.019716</td>\n",
+       "      <td>1.000000</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>0.078211</td>\n",
+       "      <td>-0.013722</td>\n",
+       "      <td>-0.031620</td>\n",
+       "      <td>0.031620</td>\n",
+       "      <td>-0.045557</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>toCoupon_GEQ5min</th>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>toCoupon_GEQ15min</th>\n",
+       "      <td>-0.155332</td>\n",
+       "      <td>0.078211</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>1.000000</td>\n",
+       "      <td>0.324984</td>\n",
+       "      <td>-0.303533</td>\n",
+       "      <td>0.303533</td>\n",
+       "      <td>-0.081602</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>toCoupon_GEQ25min</th>\n",
+       "      <td>-0.216254</td>\n",
+       "      <td>-0.013722</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>0.324984</td>\n",
+       "      <td>1.000000</td>\n",
+       "      <td>-0.192319</td>\n",
+       "      <td>0.192319</td>\n",
+       "      <td>-0.103633</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>direction_same</th>\n",
+       "      <td>0.097085</td>\n",
+       "      <td>-0.031620</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>-0.303533</td>\n",
+       "      <td>-0.192319</td>\n",
+       "      <td>1.000000</td>\n",
+       "      <td>-1.000000</td>\n",
+       "      <td>0.014570</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>direction_opp</th>\n",
+       "      <td>-0.097085</td>\n",
+       "      <td>0.031620</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>0.303533</td>\n",
+       "      <td>0.192319</td>\n",
+       "      <td>-1.000000</td>\n",
+       "      <td>1.000000</td>\n",
+       "      <td>-0.014570</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>Y</th>\n",
+       "      <td>0.061240</td>\n",
+       "      <td>-0.045557</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>-0.081602</td>\n",
+       "      <td>-0.103633</td>\n",
+       "      <td>0.014570</td>\n",
+       "      <td>-0.014570</td>\n",
+       "      <td>1.000000</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "                   temperature  has_children  toCoupon_GEQ5min  \\\n",
+       "temperature           1.000000     -0.019716               NaN   \n",
+       "has_children         -0.019716      1.000000               NaN   \n",
+       "toCoupon_GEQ5min           NaN           NaN               NaN   \n",
+       "toCoupon_GEQ15min    -0.155332      0.078211               NaN   \n",
+       "toCoupon_GEQ25min    -0.216254     -0.013722               NaN   \n",
+       "direction_same        0.097085     -0.031620               NaN   \n",
+       "direction_opp        -0.097085      0.031620               NaN   \n",
+       "Y                     0.061240     -0.045557               NaN   \n",
+       "\n",
+       "                   toCoupon_GEQ15min  toCoupon_GEQ25min  direction_same  \\\n",
+       "temperature                -0.155332          -0.216254        0.097085   \n",
+       "has_children                0.078211          -0.013722       -0.031620   \n",
+       "toCoupon_GEQ5min                 NaN                NaN             NaN   \n",
+       "toCoupon_GEQ15min           1.000000           0.324984       -0.303533   \n",
+       "toCoupon_GEQ25min           0.324984           1.000000       -0.192319   \n",
+       "direction_same             -0.303533          -0.192319        1.000000   \n",
+       "direction_opp               0.303533           0.192319       -1.000000   \n",
+       "Y                          -0.081602          -0.103633        0.014570   \n",
+       "\n",
+       "                   direction_opp         Y  \n",
+       "temperature            -0.097085  0.061240  \n",
+       "has_children            0.031620 -0.045557  \n",
+       "toCoupon_GEQ5min             NaN       NaN  \n",
+       "toCoupon_GEQ15min       0.303533 -0.081602  \n",
+       "toCoupon_GEQ25min       0.192319 -0.103633  \n",
+       "direction_same         -1.000000  0.014570  \n",
+       "direction_opp           1.000000 -0.014570  \n",
+       "Y                      -0.014570  1.000000  "
+      ]
+     },
+     "execution_count": 265,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "#Evaluating the strength of relationship between variables\n",
+    "data.corr()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 274,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>temperature</th>\n",
+       "      <th>Y</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>temperature</th>\n",
+       "      <td>1.00000</td>\n",
+       "      <td>0.06124</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>Y</th>\n",
+       "      <td>0.06124</td>\n",
+       "      <td>1.00000</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "             temperature        Y\n",
+       "temperature      1.00000  0.06124\n",
+       "Y                0.06124  1.00000"
+      ]
+     },
+     "execution_count": 274,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "#Testing how to find correlation of covaration for selected variables. \n",
+    "#data['temperature'].corr(data['Y'])\n",
+    "data[['temperature', 'Y']].corr()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 628,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "<AxesSubplot:xlabel='temperature'>"
+      ]
+     },
+     "execution_count": 628,
+     "metadata": {},
+     "output_type": "execute_result"
+    },
+    {
+     "data": {
+      "image/png": "iVBORw0KGgoAAAANSUhEUgAAAX0AAAEHCAYAAABCwJb2AAAAOXRFWHRTb2Z0d2FyZQBNYXRwbG90bGliIHZlcnNpb24zLjMuNCwgaHR0cHM6Ly9tYXRwbG90bGliLm9yZy8QVMy6AAAACXBIWXMAAAsTAAALEwEAmpwYAAAY3ElEQVR4nO3dfZBU133m8e8DQgyRhPU2aGEadrCEvQI2RtaIYMurlV8hZC3kKms9qsTgkivj0qKslXKyC6mtEq4tdlFtbO+qHCjjSAs4jigS24HSCwnGdmInSHiQZAHCFBODxQABQmwZaS0kRr/94x7s61Ez0/NC9wzn+VR19e1fn3vvgVY/upx7+l5FBGZmlocxje6AmZnVj0PfzCwjDn0zs4w49M3MMuLQNzPLiEPfzCwjlzS6A/259tpro7W1tdHdMDMbVXbt2vXPEdHcuz7iQ7+1tZXOzs5Gd8PMbFSR9ONq9ZqHdySNlfSspMfS66slbZN0ID1fVWq7XFKXpP2S5pfqN0vand57SJKG8ocyM7OBGciY/qeBfaXXy4DtETED2J5eI2km0A7MAhYAqyWNTeusATqAGemxYEi9NzOzAakp9CVVgN8C/rRUXgSsT8vrgTtL9Y0RcSYiDgJdwFxJk4GJEbEjims/bCitY2ZmdVDrmP7/Bv4LcEWpdl1EHAOIiGOSJqV6C/BUqV13qr2elnvXB+z111+nu7ubV199dTCr10VTUxOVSoVx48Y1uitmZr/Qb+hL+g/AiYjYJen2GrZZbZw++qhX22cHxTAQ06ZNe9P73d3dXHHFFbS2tjISTwtEBKdOnaK7u5vp06c3ujtmZr9Qy/DOrcAdkg4BG4H3Sfoz4HgasiE9n0jtu4GppfUrwNFUr1Spv0lErI2Itohoa25+04wjXn31Va655poRGfgAkrjmmmtG9L9EzCxP/YZ+RCyPiEpEtFKcoP1WRPwOsAVYkpotATan5S1Au6TxkqZTnLDdmYaCTkual2btLC6tM2AjNfDPGen9M7M8DeUXuauAD0o6AHwwvSYi9gKbgBeArcDSiOhJ69xLcTK4C/hH4Mkh7H/IIoL3vOc9PPnkL7uxadMmFizwpCIzuzhppN9Epa2tLXr/OGvfvn3ceOONw7L9PXv2cNddd/Hss8/S09PDnDlz2Lp1K9dff/2Qtz2c/TSzYbbiLXXe30t13Z2kXRHR1rs+4n+Re6HNnj2bD3/4wzz44IO88sorLF68eFgC38xsJMo+9AEeeOAB3vnOd3LppZf6kg9mdlFz6AOXXXYZH/vYx7j88ssZP358o7tjZnbB+NLKyZgxYxgzxn8dZnZxc8qZmWXEoW9mlhGP6ScrVqxodBfMzC44H+mbmWXEoW9mlhGHvplZRhz6ZmYZceibmWXEoW9mlhGH/iBt3bqVt7/97dxwww2sWrWq0d0xM6vJRTFPv3XZ48O6vUOrfqvP93t6eli6dCnbtm2jUqlwyy23cMcddzBz5sxh7YeZ2XDzkf4g7Ny5kxtuuIG3vvWtXHrppbS3t7N586BvAmZmVjcO/UE4cuQIU6f+8jbAlUqFI0eONLBHZma1cegPQrW7jfmeuGY2GvQb+pKaJO2U9ANJeyV9NtVXSDoi6bn0WFhaZ7mkLkn7Jc0v1W+WtDu995BGaVJWKhUOHz78i9fd3d1MmTKlgT0yM6tNLUf6Z4D3RcQ7gDnAAknz0ntfiIg56fEEgKSZQDswC1gArJY0NrVfA3QAM9JjVN6B/JZbbuHAgQMcPHiQ1157jY0bN3LHHXc0ultmZv3qd/ZOFGMZL6eX49Kjr7upLwI2RsQZ4KCkLmCupEPAxIjYASBpA3An8OSge98gl1xyCV/84heZP38+PT093HPPPcyaNavR3TIz61dNUzbTkfou4AbgTyLiaUm/CdwnaTHQCXwmIn4CtABPlVbvTrXX03Lv+pD1N8XyQli4cCELFy7sv6GZ2QhS04nciOiJiDlAheKofTbFUM31FEM+x4DPpebVxumjj/qbSOqQ1Cmp8+TJk7V00czMajCg2TsR8VPgO8CCiDie/mfwBvBlYG5q1g1MLa1WAY6meqVKvdp+1kZEW0S0NTc3D6SLZmbWh1pm7zRLujItTwA+APxQ0uRSs48Ae9LyFqBd0nhJ0ylO2O6MiGPAaUnz0qydxYB/0WRmVke1jOlPBtancf0xwKaIeEzSVyTNoRiiOQR8CiAi9kraBLwAnAWWRkRP2ta9wDpgAsUJ3FF3EtfMbDSrZfbO88BNVeof72OdlcDKKvVOYPYA+2hmZsPEv8g1M8uIQ3+Q7rnnHiZNmsTs2f6Hi5mNHhfFpZVZ8ZZh3t5L/Tb5xCc+wX333cfixYuHd99mZheQj/QH6bbbbuPqq69udDfMzAbEoW9mlhGHvplZRhz6ZmYZceibmWXEoT9Id999N+9617vYv38/lUqFhx9+uNFdMjPr10UyZbP/KZbD7dFHH637Ps3MhspH+mZmGXHom5llxKFvZpaRURv6xa17R66R3j8zy9OoDP2mpiZOnTo1YoM1Ijh16hRNTU2N7oqZ2a8YlbN3KpUK3d3djOT75zY1NVGpVPpvaGZWR6My9MeNG8f06dMb3Q0zs1GnlnvkNknaKekHkvZK+myqXy1pm6QD6fmq0jrLJXVJ2i9pfql+s6Td6b2H0r1yzcysTmoZ0z8DvC8i3gHMARZImgcsA7ZHxAxge3qNpJlAOzALWACsTvfXBVgDdFDcLH1Get/MzOqk39CPwsvp5bj0CGARsD7V1wN3puVFwMaIOBMRB4EuYK6kycDEiNgRxRnYDaV1zMysDmqavSNprKTngBPAtoh4GrguIo4BpOdJqXkLcLi0eneqtaTl3nUzM6uTmkI/InoiYg5QoThq7+vGsNXG6aOP+ps3IHVI6pTUOZJn6JiZjTYDmqcfET8FvkMxFn88DdmQnk+kZt3A1NJqFeBoqleq1KvtZ21EtEVEW3Nz80C6aGZmfahl9k6zpCvT8gTgA8APgS3AktRsCbA5LW8B2iWNlzSd4oTtzjQEdFrSvDRrZ3FpHTMzq4Na5ulPBtanGThjgE0R8ZikHcAmSZ8EXgTuAoiIvZI2AS8AZ4GlEdGTtnUvsA6YADyZHmZmVif9hn5EPA/cVKV+Cnj/edZZCaysUu8E+jofYGZmF9CovPaOmZkNjkPfzCwjDn0zs4w49M3MMuLQNzPLiEPfzCwjDn0zs4w49M3MMuLQNzPLiEPfzCwjDn0zs4w49M3MMuLQNzPLiEPfzCwjDn0zs4w49M3MMlLLnbPMzC641mWP13V/h5rqursRw0f6ZmYZqeXG6FMlfVvSPkl7JX061VdIOiLpufRYWFpnuaQuSfslzS/Vb5a0O733ULpBupmZ1Uktwztngc9ExDOSrgB2SdqW3vtCRPxxubGkmUA7MAuYAnxT0tvSzdHXAB3AU8ATwAJ8c3Qzs7rp90g/Io5FxDNp+TSwD2jpY5VFwMaIOBMRB4EuYK6kycDEiNgREQFsAO4c6h/AzMxqN6AxfUmtwE3A06l0n6TnJT0i6apUawEOl1brTrWWtNy7Xm0/HZI6JXWePHlyIF00M7M+1Bz6ki4HvgbcHxE/oxiquR6YAxwDPneuaZXVo4/6m4sRayOiLSLampuba+2imZn1o6bQlzSOIvC/GhFfB4iI4xHRExFvAF8G5qbm3cDU0uoV4GiqV6rUzcysTmqZvSPgYWBfRHy+VJ9cavYRYE9a3gK0SxovaTowA9gZEceA05LmpW0uBjYP05/DzMxqUMvsnVuBjwO7JT2Xan8E3C1pDsUQzSHgUwARsVfSJuAFipk/S9PMHYB7gXXABIpZO565Y2ZWR/2GfkR8j+rj8U/0sc5KYGWVeicweyAdNDOz4eNf5JqZZcShb2aWEYe+mVlGHPpmZhlx6JuZZcShb2aWEYe+mVlGHPpmZhlx6JuZZcShb2aWEYe+mVlGHPpmZhlx6JuZZcShb2aWEYe+mVlGHPpmZhlx6JuZZaSWe+ROlfRtSfsk7ZX06VS/WtI2SQfS81WldZZL6pK0X9L8Uv1mSbvTew+le+WamVmd1HKP3LPAZyLiGUlXALskbQM+AWyPiFWSlgHLgP8qaSbQDswCpgDflPS2dJ/cNUAH8BTF7RYX4Pvk2mi14i113t9L9d2fXZT6PdKPiGMR8UxaPg3sA1qARcD61Gw9cGdaXgRsjIgzEXEQ6ALmSpoMTIyIHRERwIbSOmZmVgcDGtOX1ArcBDwNXBcRx6D4HwMwKTVrAQ6XVutOtZa03LtuZmZ1UnPoS7oc+Bpwf0T8rK+mVWrRR73avjokdUrqPHnyZK1dNDOzftQU+pLGUQT+VyPi66l8PA3ZkJ5PpHo3MLW0egU4muqVKvU3iYi1EdEWEW3Nzc21/lnMzKwftczeEfAwsC8iPl96awuwJC0vATaX6u2SxkuaDswAdqYhoNOS5qVtLi6tY2ZmdVDL7J1bgY8DuyU9l2p/BKwCNkn6JPAicBdAROyVtAl4gWLmz9I0cwfgXmAdMIFi1o5n7piZ1VG/oR8R36P6eDzA+8+zzkpgZZV6JzB7IB00M7Ph41/kmpllxKFvZpYRh76ZWUYc+mZmGXHom5llxKFvZpYRh76ZWUZq+XGW2ajQuuzxuu7vUFNdd2c2LHykb2aWEYe+mVlGHPpmZhlx6JuZZcShb2aWEYe+mVlGHPpmZhlx6JuZZcShb2aWkVrukfuIpBOS9pRqKyQdkfRceiwsvbdcUpek/ZLml+o3S9qd3nso3SfXzMzqqJYj/XXAgir1L0TEnPR4AkDSTKAdmJXWWS1pbGq/BuiguFH6jPNs08zMLqB+Qz8i/g74lxq3twjYGBFnIuIg0AXMlTQZmBgROyIigA3AnYPss5mZDdJQxvTvk/R8Gv65KtVagMOlNt2p1pKWe9fNzKyOBhv6a4DrgTnAMeBzqV5tnD76qFclqUNSp6TOkydPDrKLZmbW26BCPyKOR0RPRLwBfBmYm97qBqaWmlaAo6leqVI/3/bXRkRbRLQ1NzcPpotmZlbFoEI/jdGf8xHg3MyeLUC7pPGSplOcsN0ZEceA05LmpVk7i4HNQ+i3mZkNQr83UZH0KHA7cK2kbuAB4HZJcyiGaA4BnwKIiL2SNgEvAGeBpRHRkzZ1L8VMoAnAk+lhZmZ11G/oR8TdVcoP99F+JbCySr0TmD2g3pmZ2bDyL3LNzDLi0Dczy4hD38wsIw59M7OMOPTNzDLi0Dczy4hD38wsIw59M7OMOPTNzDLi0Dczy0i/l2GwC2zFW+q4r5fqty8zG5F8pG9mlhGHvplZRhz6ZmYZceibmWXEoW9mlhGHvplZRjxls5fWZY/XdX+Hmuq6OzPLXL9H+pIekXRC0p5S7WpJ2yQdSM9Xld5bLqlL0n5J80v1myXtTu89lG6QbmZmdVTL8M46YEGv2jJge0TMALan10iaCbQDs9I6qyWNTeusATqAGenRe5tmZnaB9Rv6EfF3wL/0Ki8C1qfl9cCdpfrGiDgTEQeBLmCupMnAxIjYEREBbCitY2ZmdTLYE7nXRcQxgPQ8KdVbgMOldt2p1pKWe9fNzKyOhnv2TrVx+uijXn0jUoekTkmdJ0+eHLbOmZnlbrChfzwN2ZCeT6R6NzC11K4CHE31SpV6VRGxNiLaIqKtubl5kF00M7PeBhv6W4AlaXkJsLlUb5c0XtJ0ihO2O9MQ0GlJ89KsncWldczMrE76nacv6VHgduBaSd3AA8AqYJOkTwIvAncBRMReSZuAF4CzwNKI6EmbupdiJtAE4Mn0MDOzOuo39CPi7vO89f7ztF8JrKxS7wRmD6h3ZmY2rHwZBjOzjDj0zcwy4tA3M8uIQ9/MLCMOfTOzjDj0zcwy4tA3M8uIQ9/MLCMOfTOzjDj0zcwy4tA3M8uIQ9/MLCMOfTOzjDj0zcwy4tA3M8uIQ9/MLCMOfTOzjAwp9CUdkrRb0nOSOlPtaknbJB1Iz1eV2i+X1CVpv6T5Q+28mZkNzHAc6b83IuZERFt6vQzYHhEzgO3pNZJmAu3ALGABsFrS2GHYv5mZ1ehCDO8sAtan5fXAnaX6xog4ExEHgS5g7gXYv5mZncdQQz+Av5G0S1JHql0XEccA0vOkVG8BDpfW7U41MzOrk0uGuP6tEXFU0iRgm6Qf9tFWVWpRtWHxP5AOgGnTpg2xi2Zmds6QjvQj4mh6PgF8g2K45rikyQDp+URq3g1MLa1eAY6eZ7trI6ItItqam5uH0kUzMysZdOhLukzSFeeWgQ8Be4AtwJLUbAmwOS1vAdoljZc0HZgB7Bzs/s3MbOCGMrxzHfANSee28+cRsVXS94FNkj4JvAjcBRAReyVtAl4AzgJLI6JnSL03M7MBGXToR8SPgHdUqZ8C3n+edVYCKwe7TzMzGxr/ItfMLCMOfTOzjDj0zcwy4tA3M8uIQ9/MLCMOfTOzjDj0zcwy4tA3M8uIQ9/MLCMOfTOzjDj0zcwy4tA3M8uIQ9/MLCMOfTOzjDj0zcwy4tA3M8uIQ9/MLCMOfTOzjNQ99CUtkLRfUpekZfXev5lZzuoa+pLGAn8C/CYwE7hb0sx69sHMLGf1PtKfC3RFxI8i4jVgI7Cozn0wM8tWvUO/BThcet2damZmVgeX1Hl/qlKLNzWSOoCO9PJlSfsvaK8aSHAt8M912dlnq/3122DV9bMDf37DLIPP719XK9Y79LuBqaXXFeBo70YRsRZYW69ONZKkzohoa3Q/bOD82Y1uuX5+9R7e+T4wQ9J0SZcC7cCWOvfBzCxbdT3Sj4izku4D/hoYCzwSEXvr2Qczs5zVe3iHiHgCeKLe+x3BshjGukj5sxvdsvz8FPGm86hmZnaRqvuRfs4kXULxdz4GeC0izqb6JGAC8P8i4mQDu2h9KH1+YykOmF6WdAUwMdXGAMcj4ucN7KZVIUnAeIrP6WxEnEn17L57vvZOnUiaBjwP/APwPeD3U/0mYCvFCe0vSbqqYZ2085I0BTgFfBd4CliX3noI2AU8CqwGbmxE/+z8JP0a8D+A54C/B/5Pqmf53fPwTp2kI41xEfFa+o/rSeB+4HeBJyLia5L+EJgSEb8vSeEPZ8SQ1AJ8MyJuLNUuB5YDz0bEXzasc9YnSbcAGyLiRkkTgK8AjwPzgL/J7bvnI/06icJrksYBU4CfU/xY7d3A11OzzRTXJbKR5yxwiaTLUtifq10KvE3SFEnNjeue9eEsMEZSE7+8AsAR4N+R4XfPoV9Hkq4E9gF/CzwG7AWuLR1V/ATI4p+Yo9CrFGO/3wK2SbqHIkzOUPze5C+BB9MwkI0su4E/o/h+/S3Fj0SfBppz/O459OsoIn4aETcAbwc+CMwG3ig1OUuVy1JY40XES8BNEfEbwEeB+yguIPg/I+LXI+LdwD8Cn29gN626KcBtETEBeGt6/XHg9VKbbL57Dv3GeAnYCfx74Iik61J9GvAiFMNBDeqbnUdpdsc/UZyTeWdEvFJq8lfAv6l3v6xftwFdafl1is9uDnA0x++eQ79OJDVLuiaN6U8C3gvsoBhL/D1JrcA9wIbG9dLOR9KvSboyfX6TKT6/XZJulPSvJE0HllDMBrGR5cfArWkWz5XAfIoZdFvI8Lvnefr100Ixze/cUcQjEfEdSc8A64FvUIw9rm5M96wfLcDXSCcFgS9FxA5J/xeYleq7gd9rXBetmoj4rqSvA53Aa8B3I2KdpIlk+N3zlE0zs4x4eMfMLCMOfTOzjDj0zcwy4tA3M8uIQ9/MLCMOfRvV0tz5/9TofvRH0v1pnrhZQzn0bbS7Emh46KvQ1/fpfmBAoZ+u3282rBz6NtqtAq6X9Jyk/yXpDyV9X9Lzkj4LIKlV0g8l/amkPZK+KukDkv5e0gFJc1O7FZK+Iulbqf6753bSx3b3SVoNPANMlbRGUqekvaV2/5niei/flvTtVHu5tO2PSlqXltdJ+nxq96Ck6yVtlbRL0ncl+TIPNjQR4Ycfo/YBtAJ70vKHKO57KooDmscorrvSSvGL2X+b6ruAR1K7RcBfpfVXAD+guJrmtcBhirDua7tvAPNK/bk6PY8FvgP8enp9iOKKqufavVxa/iiwLi2vS9sfm15vB2ak5d8AvtXov3M/RvfD/3y0i8mH0uPZ9PpyYAbFhbQORsRuAEl7ge0REZJ2U4T3OZujuN3hz9PR9lzgPX1s98cR8VRp/f8oqYPiEieTgZkUd0wbiL+IiJ503f53A39R3IMHKG75ZzZoDn27mIjiUsdf+pVicUGtM6XSG6XXb/Cr34Pe1yWJfrb7Sun1dOAPgFsi4idpyKbpPH0t76d3m3PbHAP8NCLmnGcbZgPmMX0b7U4DV6TlvwbuOXdnK0kt6cbXA7FIUpOka4Dbge8PYLsTKQL7pXTJ3vKdmMr9BDiertA5BvhItY5ExM+Ag5LuSvuVpHcM8M9j9it8pG+jWkScSidk91BcJ/3PgR1pOORl4HeAngFscifF/VOnAf89Io5SXHf9xv62GxE/kPQsxR3RfkRxE+5z1gJPSjoWEe8FllGM3R8G9lAMGVXz28AaSf8NGAdspDjvYDYovsqmWSJpBcUJ1j9udF/MLhQP75iZZcRH+mZmGfGRvplZRhz6ZmYZceibmWXEoW9mlhGHvplZRhz6ZmYZ+f/KIgNKMEfwdAAAAABJRU5ErkJggg==\n",
+      "text/plain": [
+       "<Figure size 432x288 with 1 Axes>"
+      ]
+     },
+     "metadata": {
+      "needs_background": "light"
+     },
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "#The below graph shows that there is some relationship between temperature and the customers accepting coupons. \n",
+    "\n",
+    "data.groupby(['temperature', 'Y']).size().unstack().plot(kind='bar', rot=1)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 272,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "coupon\n",
+       "Bar                       635\n",
+       "Carry out & Take away    1066\n",
+       "Coffee House             2401\n",
+       "Restaurant(20-50)         851\n",
+       "Restaurant(<20)          1575\n",
+       "dtype: int64"
+      ]
+     },
+     "execution_count": 272,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "data.query('temperature == 80').groupby('coupon').size()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Investigating the Bar Coupons**\n",
+    "\n",
+    "Now, we will lead you through an exploration of just the bar related coupons.  \n",
+    "\n",
+    "1. Create a new `DataFrame` that contains just the bar coupons.\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 114,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>destination</th>\n",
+       "      <th>passanger</th>\n",
+       "      <th>weather</th>\n",
+       "      <th>temperature</th>\n",
+       "      <th>time</th>\n",
+       "      <th>coupon</th>\n",
+       "      <th>expiration</th>\n",
+       "      <th>gender</th>\n",
+       "      <th>age</th>\n",
+       "      <th>maritalStatus</th>\n",
+       "      <th>...</th>\n",
+       "      <th>CoffeeHouse</th>\n",
+       "      <th>CarryAway</th>\n",
+       "      <th>RestaurantLessThan20</th>\n",
+       "      <th>Restaurant20To50</th>\n",
+       "      <th>toCoupon_GEQ5min</th>\n",
+       "      <th>toCoupon_GEQ15min</th>\n",
+       "      <th>toCoupon_GEQ25min</th>\n",
+       "      <th>direction_same</th>\n",
+       "      <th>direction_opp</th>\n",
+       "      <th>Y</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>9</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Kid(s)</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>80</td>\n",
+       "      <td>10AM</td>\n",
+       "      <td>Bar</td>\n",
+       "      <td>1d</td>\n",
+       "      <td>Female</td>\n",
+       "      <td>21</td>\n",
+       "      <td>Unmarried partner</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>13</th>\n",
+       "      <td>Home</td>\n",
+       "      <td>Alone</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>55</td>\n",
+       "      <td>6PM</td>\n",
+       "      <td>Bar</td>\n",
+       "      <td>1d</td>\n",
+       "      <td>Female</td>\n",
+       "      <td>21</td>\n",
+       "      <td>Unmarried partner</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>17</th>\n",
+       "      <td>Work</td>\n",
+       "      <td>Alone</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>55</td>\n",
+       "      <td>7AM</td>\n",
+       "      <td>Bar</td>\n",
+       "      <td>1d</td>\n",
+       "      <td>Female</td>\n",
+       "      <td>21</td>\n",
+       "      <td>Unmarried partner</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>24</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Friend(s)</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>80</td>\n",
+       "      <td>10AM</td>\n",
+       "      <td>Bar</td>\n",
+       "      <td>1d</td>\n",
+       "      <td>Male</td>\n",
+       "      <td>21</td>\n",
+       "      <td>Single</td>\n",
+       "      <td>...</td>\n",
+       "      <td>less1</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>less1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>35</th>\n",
+       "      <td>Home</td>\n",
+       "      <td>Alone</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>55</td>\n",
+       "      <td>6PM</td>\n",
+       "      <td>Bar</td>\n",
+       "      <td>1d</td>\n",
+       "      <td>Male</td>\n",
+       "      <td>21</td>\n",
+       "      <td>Single</td>\n",
+       "      <td>...</td>\n",
+       "      <td>less1</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>less1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>...</th>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>12663</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Friend(s)</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>80</td>\n",
+       "      <td>10PM</td>\n",
+       "      <td>Bar</td>\n",
+       "      <td>1d</td>\n",
+       "      <td>Male</td>\n",
+       "      <td>26</td>\n",
+       "      <td>Single</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>12664</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Friend(s)</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>55</td>\n",
+       "      <td>10PM</td>\n",
+       "      <td>Bar</td>\n",
+       "      <td>2h</td>\n",
+       "      <td>Male</td>\n",
+       "      <td>26</td>\n",
+       "      <td>Single</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>12667</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Alone</td>\n",
+       "      <td>Rainy</td>\n",
+       "      <td>55</td>\n",
+       "      <td>10AM</td>\n",
+       "      <td>Bar</td>\n",
+       "      <td>1d</td>\n",
+       "      <td>Male</td>\n",
+       "      <td>26</td>\n",
+       "      <td>Single</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>12670</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Partner</td>\n",
+       "      <td>Rainy</td>\n",
+       "      <td>55</td>\n",
+       "      <td>6PM</td>\n",
+       "      <td>Bar</td>\n",
+       "      <td>2h</td>\n",
+       "      <td>Male</td>\n",
+       "      <td>26</td>\n",
+       "      <td>Single</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>12682</th>\n",
+       "      <td>Work</td>\n",
+       "      <td>Alone</td>\n",
+       "      <td>Snowy</td>\n",
+       "      <td>30</td>\n",
+       "      <td>7AM</td>\n",
+       "      <td>Bar</td>\n",
+       "      <td>1d</td>\n",
+       "      <td>Male</td>\n",
+       "      <td>26</td>\n",
+       "      <td>Single</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "<p>2017 rows × 25 columns</p>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "           destination  passanger weather  temperature  time coupon  \\\n",
+       "9      No Urgent Place     Kid(s)   Sunny           80  10AM    Bar   \n",
+       "13                Home      Alone   Sunny           55   6PM    Bar   \n",
+       "17                Work      Alone   Sunny           55   7AM    Bar   \n",
+       "24     No Urgent Place  Friend(s)   Sunny           80  10AM    Bar   \n",
+       "35                Home      Alone   Sunny           55   6PM    Bar   \n",
+       "...                ...        ...     ...          ...   ...    ...   \n",
+       "12663  No Urgent Place  Friend(s)   Sunny           80  10PM    Bar   \n",
+       "12664  No Urgent Place  Friend(s)   Sunny           55  10PM    Bar   \n",
+       "12667  No Urgent Place      Alone   Rainy           55  10AM    Bar   \n",
+       "12670  No Urgent Place    Partner   Rainy           55   6PM    Bar   \n",
+       "12682             Work      Alone   Snowy           30   7AM    Bar   \n",
+       "\n",
+       "      expiration  gender age      maritalStatus  ...  CoffeeHouse CarryAway  \\\n",
+       "9             1d  Female  21  Unmarried partner  ...        never       NaN   \n",
+       "13            1d  Female  21  Unmarried partner  ...        never       NaN   \n",
+       "17            1d  Female  21  Unmarried partner  ...        never       NaN   \n",
+       "24            1d    Male  21             Single  ...        less1       4~8   \n",
+       "35            1d    Male  21             Single  ...        less1       4~8   \n",
+       "...          ...     ...  ..                ...  ...          ...       ...   \n",
+       "12663         1d    Male  26             Single  ...        never       1~3   \n",
+       "12664         2h    Male  26             Single  ...        never       1~3   \n",
+       "12667         1d    Male  26             Single  ...        never       1~3   \n",
+       "12670         2h    Male  26             Single  ...        never       1~3   \n",
+       "12682         1d    Male  26             Single  ...        never       1~3   \n",
+       "\n",
+       "      RestaurantLessThan20 Restaurant20To50 toCoupon_GEQ5min  \\\n",
+       "9                      4~8              1~3                1   \n",
+       "13                     4~8              1~3                1   \n",
+       "17                     4~8              1~3                1   \n",
+       "24                     4~8            less1                1   \n",
+       "35                     4~8            less1                1   \n",
+       "...                    ...              ...              ...   \n",
+       "12663                  4~8              1~3                1   \n",
+       "12664                  4~8              1~3                1   \n",
+       "12667                  4~8              1~3                1   \n",
+       "12670                  4~8              1~3                1   \n",
+       "12682                  4~8              1~3                1   \n",
+       "\n",
+       "      toCoupon_GEQ15min toCoupon_GEQ25min direction_same direction_opp  Y  \n",
+       "9                     1                 0              0             1  0  \n",
+       "13                    0                 0              1             0  1  \n",
+       "17                    1                 1              0             1  0  \n",
+       "24                    0                 0              0             1  1  \n",
+       "35                    0                 0              1             0  1  \n",
+       "...                 ...               ...            ...           ... ..  \n",
+       "12663                 1                 0              0             1  0  \n",
+       "12664                 1                 0              0             1  0  \n",
+       "12667                 1                 0              0             1  0  \n",
+       "12670                 1                 0              0             1  0  \n",
+       "12682                 1                 1              0             1  0  \n",
+       "\n",
+       "[2017 rows x 25 columns]"
+      ]
+     },
+     "execution_count": 114,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "data_bar = data.query('coupon == \"Bar\"')\n",
+    "data_bar"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "2. What proportion of bar coupons were accepted?\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 285,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "0    0.589985\n",
+       "1    0.410015\n",
+       "Name: Y, dtype: float64"
+      ]
+     },
+     "execution_count": 285,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "# Proportion of Bar coupon accepted \n",
+    "data_bar['Y'].value_counts(normalize = True)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 393,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th>Y</th>\n",
+       "      <th>0</th>\n",
+       "      <th>1</th>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>Bar</th>\n",
+       "      <th></th>\n",
+       "      <th></th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>1~3</th>\n",
+       "      <td>140</td>\n",
+       "      <td>257</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>4~8</th>\n",
+       "      <td>33</td>\n",
+       "      <td>117</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>gt8</th>\n",
+       "      <td>13</td>\n",
+       "      <td>36</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>less1</th>\n",
+       "      <td>317</td>\n",
+       "      <td>253</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>never</th>\n",
+       "      <td>674</td>\n",
+       "      <td>156</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "Y        0    1\n",
+       "Bar            \n",
+       "1~3    140  257\n",
+       "4~8     33  117\n",
+       "gt8     13   36\n",
+       "less1  317  253\n",
+       "never  674  156"
+      ]
+     },
+     "execution_count": 393,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "#data_bar.groupby('Bar').agg(sum)[['Y']]\n",
+    "data_bar_accepeted = data_bar.groupby(['Bar', 'Y']).size().unstack()\n",
+    "data_bar_accepeted"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "3. Compare the acceptance rate between those who went to a bar 3 or fewer times a month to those who went more.\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 529,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "<AxesSubplot:xlabel='Bar'>"
+      ]
+     },
+     "execution_count": 529,
+     "metadata": {},
+     "output_type": "execute_result"
+    },
+    {
+     "data": {
+      "image/png": "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\n",
+      "text/plain": [
+       "<Figure size 432x288 with 1 Axes>"
+      ]
+     },
+     "metadata": {
+      "needs_background": "light"
+     },
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "# Visual representation of the distribution of Bar coupon\n",
+    "data.groupby(['Bar', 'Y']).size().unstack().plot(kind='bar', rot=1)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "raw",
+   "metadata": {},
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 395,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "The % of Bar coupons accpeted those who went a bar 3 or fewer times - 0.8131868131868132\n",
+      "The % of Bar coupons accpeted those who went more than 3 times - 0.18681318681318682\n"
+     ]
+    }
+   ],
+   "source": [
+    "#test.iloc[[1, 2], 1].agg(sum)\n",
+    "#Calculate the number of Bar coupons accpeted where column Y = 1. \n",
+    "print(\"The % of Bar coupons accpeted those who went a bar 3 or fewer times -\", data_bar_accepeted.iloc[[0, 3, 4], 1].agg(sum)/data_bar_accepeted.iloc[[0, 1,2,3,4], 1].agg(sum))\n",
+    "print(\"The % of Bar coupons accpeted those who went more than 3 times -\", data_bar_accepeted.iloc[[1, 2], 1].agg(sum)/data_bar_accepeted.iloc[[0, 1,2,3,4], 1].agg(sum))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "4. Compare the acceptance rate between drivers who go to a bar more than once a month and are over the age of 25 to the all others.  Is there a difference?\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 367,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "array(['21', '46', '26', '31', '41', '50plus', '36', 'below21'],\n",
+       "      dtype=object)"
+      ]
+     },
+     "execution_count": 367,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "data.age.unique()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 410,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "819"
+      ]
+     },
+     "execution_count": 410,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "data_bar_accepeted.iloc[:, 1].agg(sum)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 663,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "1    0.695238\n",
+       "0    0.304762\n",
+       "Name: BarOver25, dtype: float64"
+      ]
+     },
+     "execution_count": 663,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "#data_bar_gt25 = data_bar.loc[((data_bar['age'] == '26') | (data_bar['age'] == '46') | (data_bar['age'] == '31') \n",
+    "              #| (data_bar['age'] == '36') | (data_bar['age'] == '41') | (data_bar['age'] == '50plus')) \n",
+    "             #& ((data_bar['Bar'] == '1~3') | (data_bar['Bar'] == '4~8') | (data_bar['Bar'] == 'gt8')) & (data_bar[\"Y\"] == 1)]\n",
+    "#data_bar_gt25.iloc[:, -1].agg(sum)\n",
+    "\n",
+    "#print(\"The acceptance rate between drivers who go to a bar more than once a month and are over the age of 25 to the all others -\", data_bar_gt25.iloc[:, -1].agg(sum)/data_bar_accepeted.iloc[:, 1].agg(sum) )\n",
+    "data_bar_gt25 = data_bar.loc[((data_bar['age'] == '26') | (data_bar['age'] == '46') | (data_bar['age'] == '31') \n",
+    "              | (data_bar['age'] == '36') | (data_bar['age'] == '41') | (data_bar['age'] == '50plus')) \n",
+    "             & ((data_bar['Bar'] == '1~3') | (data_bar['Bar'] == '4~8') | (data_bar['Bar'] == 'gt8'))]\n",
+    "data_bar_gt25['Y'].value_counts(normalize=True).rename('BarOver25')"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "5. Use the same process to compare the acceptance rate between drivers who go to bars more than once a month and had passengers that were not a kid and had occupations other than farming, fishing, or forestry. \n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 462,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>destination</th>\n",
+       "      <th>passanger</th>\n",
+       "      <th>weather</th>\n",
+       "      <th>temperature</th>\n",
+       "      <th>time</th>\n",
+       "      <th>coupon</th>\n",
+       "      <th>expiration</th>\n",
+       "      <th>gender</th>\n",
+       "      <th>age</th>\n",
+       "      <th>maritalStatus</th>\n",
+       "      <th>...</th>\n",
+       "      <th>CoffeeHouse</th>\n",
+       "      <th>CarryAway</th>\n",
+       "      <th>RestaurantLessThan20</th>\n",
+       "      <th>Restaurant20To50</th>\n",
+       "      <th>toCoupon_GEQ5min</th>\n",
+       "      <th>toCoupon_GEQ15min</th>\n",
+       "      <th>toCoupon_GEQ25min</th>\n",
+       "      <th>direction_same</th>\n",
+       "      <th>direction_opp</th>\n",
+       "      <th>Y</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>90</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Friend(s)</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>80</td>\n",
+       "      <td>10AM</td>\n",
+       "      <td>Bar</td>\n",
+       "      <td>1d</td>\n",
+       "      <td>Male</td>\n",
+       "      <td>21</td>\n",
+       "      <td>Single</td>\n",
+       "      <td>...</td>\n",
+       "      <td>less1</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>less1</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>112</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Friend(s)</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>80</td>\n",
+       "      <td>10AM</td>\n",
+       "      <td>Bar</td>\n",
+       "      <td>1d</td>\n",
+       "      <td>Male</td>\n",
+       "      <td>26</td>\n",
+       "      <td>Unmarried partner</td>\n",
+       "      <td>...</td>\n",
+       "      <td>gt8</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>less1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>156</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Friend(s)</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>80</td>\n",
+       "      <td>10AM</td>\n",
+       "      <td>Bar</td>\n",
+       "      <td>1d</td>\n",
+       "      <td>Male</td>\n",
+       "      <td>26</td>\n",
+       "      <td>Single</td>\n",
+       "      <td>...</td>\n",
+       "      <td>gt8</td>\n",
+       "      <td>gt8</td>\n",
+       "      <td>gt8</td>\n",
+       "      <td>gt8</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>224</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Partner</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>80</td>\n",
+       "      <td>10AM</td>\n",
+       "      <td>Bar</td>\n",
+       "      <td>2h</td>\n",
+       "      <td>Female</td>\n",
+       "      <td>21</td>\n",
+       "      <td>Unmarried partner</td>\n",
+       "      <td>...</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>227</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Partner</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>80</td>\n",
+       "      <td>6PM</td>\n",
+       "      <td>Bar</td>\n",
+       "      <td>1d</td>\n",
+       "      <td>Female</td>\n",
+       "      <td>21</td>\n",
+       "      <td>Unmarried partner</td>\n",
+       "      <td>...</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>...</th>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>12481</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Friend(s)</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>80</td>\n",
+       "      <td>10PM</td>\n",
+       "      <td>Bar</td>\n",
+       "      <td>1d</td>\n",
+       "      <td>Female</td>\n",
+       "      <td>26</td>\n",
+       "      <td>Unmarried partner</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>less1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>12482</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Friend(s)</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>55</td>\n",
+       "      <td>10PM</td>\n",
+       "      <td>Bar</td>\n",
+       "      <td>2h</td>\n",
+       "      <td>Female</td>\n",
+       "      <td>26</td>\n",
+       "      <td>Unmarried partner</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>less1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>12488</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Partner</td>\n",
+       "      <td>Rainy</td>\n",
+       "      <td>55</td>\n",
+       "      <td>6PM</td>\n",
+       "      <td>Bar</td>\n",
+       "      <td>2h</td>\n",
+       "      <td>Female</td>\n",
+       "      <td>26</td>\n",
+       "      <td>Unmarried partner</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>less1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>12525</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Friend(s)</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>80</td>\n",
+       "      <td>10PM</td>\n",
+       "      <td>Bar</td>\n",
+       "      <td>1d</td>\n",
+       "      <td>Male</td>\n",
+       "      <td>21</td>\n",
+       "      <td>Unmarried partner</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>gt8</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>12526</th>\n",
+       "      <td>No Urgent Place</td>\n",
+       "      <td>Friend(s)</td>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>55</td>\n",
+       "      <td>10PM</td>\n",
+       "      <td>Bar</td>\n",
+       "      <td>2h</td>\n",
+       "      <td>Male</td>\n",
+       "      <td>21</td>\n",
+       "      <td>Unmarried partner</td>\n",
+       "      <td>...</td>\n",
+       "      <td>never</td>\n",
+       "      <td>gt8</td>\n",
+       "      <td>4~8</td>\n",
+       "      <td>1~3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "<p>195 rows × 25 columns</p>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "           destination  passanger weather  temperature  time coupon  \\\n",
+       "90     No Urgent Place  Friend(s)   Sunny           80  10AM    Bar   \n",
+       "112    No Urgent Place  Friend(s)   Sunny           80  10AM    Bar   \n",
+       "156    No Urgent Place  Friend(s)   Sunny           80  10AM    Bar   \n",
+       "224    No Urgent Place    Partner   Sunny           80  10AM    Bar   \n",
+       "227    No Urgent Place    Partner   Sunny           80   6PM    Bar   \n",
+       "...                ...        ...     ...          ...   ...    ...   \n",
+       "12481  No Urgent Place  Friend(s)   Sunny           80  10PM    Bar   \n",
+       "12482  No Urgent Place  Friend(s)   Sunny           55  10PM    Bar   \n",
+       "12488  No Urgent Place    Partner   Rainy           55   6PM    Bar   \n",
+       "12525  No Urgent Place  Friend(s)   Sunny           80  10PM    Bar   \n",
+       "12526  No Urgent Place  Friend(s)   Sunny           55  10PM    Bar   \n",
+       "\n",
+       "      expiration  gender age      maritalStatus  ...  CoffeeHouse CarryAway  \\\n",
+       "90            1d    Male  21             Single  ...        less1       1~3   \n",
+       "112           1d    Male  26  Unmarried partner  ...          gt8       4~8   \n",
+       "156           1d    Male  26             Single  ...          gt8       gt8   \n",
+       "224           2h  Female  21  Unmarried partner  ...          1~3       1~3   \n",
+       "227           1d  Female  21  Unmarried partner  ...          1~3       1~3   \n",
+       "...          ...     ...  ..                ...  ...          ...       ...   \n",
+       "12481         1d  Female  26  Unmarried partner  ...        never       4~8   \n",
+       "12482         2h  Female  26  Unmarried partner  ...        never       4~8   \n",
+       "12488         2h  Female  26  Unmarried partner  ...        never       4~8   \n",
+       "12525         1d    Male  21  Unmarried partner  ...        never       gt8   \n",
+       "12526         2h    Male  21  Unmarried partner  ...        never       gt8   \n",
+       "\n",
+       "      RestaurantLessThan20 Restaurant20To50 toCoupon_GEQ5min  \\\n",
+       "90                   less1              1~3                1   \n",
+       "112                    1~3            less1                1   \n",
+       "156                    gt8              gt8                1   \n",
+       "224                    1~3              1~3                1   \n",
+       "227                    1~3              1~3                1   \n",
+       "...                    ...              ...              ...   \n",
+       "12481                  4~8            less1                1   \n",
+       "12482                  4~8            less1                1   \n",
+       "12488                  4~8            less1                1   \n",
+       "12525                  4~8              1~3                1   \n",
+       "12526                  4~8              1~3                1   \n",
+       "\n",
+       "      toCoupon_GEQ15min toCoupon_GEQ25min direction_same direction_opp  Y  \n",
+       "90                    0                 0              0             1  1  \n",
+       "112                   0                 0              0             1  1  \n",
+       "156                   0                 0              0             1  1  \n",
+       "224                   0                 0              0             1  0  \n",
+       "227                   1                 0              0             1  1  \n",
+       "...                 ...               ...            ...           ... ..  \n",
+       "12481                 1                 0              0             1  1  \n",
+       "12482                 1                 0              0             1  1  \n",
+       "12488                 1                 0              0             1  1  \n",
+       "12525                 1                 0              0             1  1  \n",
+       "12526                 1                 0              0             1  1  \n",
+       "\n",
+       "[195 rows x 25 columns]"
+      ]
+     },
+     "execution_count": 462,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "#data.passanger.unique() //Kid(s)  Alone\n",
+    "#data.occupation.unique() // Farming Fishing & Forestry\n",
+    "#& (data_bar[\"Y\"] == 1)\n",
+    "\n",
+    "data_bar_nokids_nofarming = data_bar.loc[((data_bar['Bar'] == '1~3') | (data_bar['Bar'] == '4~8') | \n",
+    "                                            (data_bar['Bar'] == 'gt8')) &\n",
+    "                                            (data_bar['passanger'] != 'Kid(s)') & (data_bar['passanger'] != 'Alone') & \n",
+    "                                            (data_bar['occupation'] != 'Farming Fishing & Forestry')]\n",
+    "data_bar_nokids_nofarming"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 475,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "1    0.717949\n",
+       "0    0.282051\n",
+       "Name: Y, dtype: float64"
+      ]
+     },
+     "execution_count": 475,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "#There seems to be high acceptance rate (71%) of the Bar coupon if passangers are other than kids. \n",
+    "data_bar_nokids_nofarming['Y'].value_counts(normalize=True)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 514,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "<AxesSubplot:xlabel='Acceptance Result', ylabel='Acceptance Rate'>"
+      ]
+     },
+     "execution_count": 514,
+     "metadata": {},
+     "output_type": "execute_result"
+    },
+    {
+     "data": {
+      "image/png": "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p9OpUycKCwtp164d7s6xxx6b/ODKzMxk1KhRHHbYYYwfPx6A//7v/+bDDz9k8eLFrF69mosuumiPKZwJEyZw/vnnc+211+4R+9VXX820adPo06cPt99+O3feeWeyBPa///u/M2LECG666aYa3/dDDz3EIYccwooVK1ixYgW5ublAIrl88MEHlJaWAvDZZ58ltznuuOM488wzefLJJxk4cGCyva6S3evWrSMnJweAM844gylTpvDSSy+Rnp7Ou+++y9ChQ5MfykuXLqW0tJSsrCwWLlwYutx3qp07d7J06VLmzZvHnXfeycsvv8yDDz5ImzZtWLFiBaWlpcl4RA50OiKoJ5VTQ6tXr+aFF17g6quvxt1xdyZNmkR2djZnn302H3zwAR999BEAxx9/PD179kyOccYZZ1BYWEhhYSG9evWiV69eFBYW8tprr4Wa/gG4+OKLadasGSeffHJyP5WysrLIz8/nqae+qeSxefNmPvvsM/r06QPAsGHDkpVHIVFMb86cOXz88cc17m/RokX86Ec/AiA7O5vs7Gwg8WCa9evXM3bsWF544QUOP/zwPbabNGkSU6ZMYffu3cm22kp2wzdTQyUlJUyfPp0dO3Zw3XXX0a1bN374wx+yalWyujn5+flkZWUllyvLfR988MHVyn3X9BwFgEsuuQSA0047Ldln8eLFDBkyBIBTTjkl+V5FDnRKBBHo1asXGzdupKKigpkzZ1JRUcGyZcsoKSnhqKOOSpZWrlrGuXfv3hQWFrJkyRJ69erFSSedxKpVqygsLOSMM84Ite/U0tY11ZGaNGkSkydP3uMDuC5Dhgxh9OjRXHDBBXtUCU1VtSw2QJs2bVi+fDl9+/Zl+vTpjBgxYo/13/3ud8nJyeHpp5+uM97aTJ06laOOOorly5dTXFy8x8njqr/XsOW+a9omLS0t2SequlwijU2JIAKrV69m165dtG3bls2bN9OuXTtatGjBggUL+Pvf/17rdr179+b111+noqKCdu3aYWZkZGQwZ86cGo8IqpZwDqNLly6cfPLJyaqjrVu3pk2bNsl58CeffDJ5dFBp3LhxDBgwgMGDB1e7Wud73/te8iR3aWkpK1asABJXA+3evZtLL72Un//857zxxhvVYrn11luT8/KVY4Ut2b1582aOOeYYmjVrxpNPPsmuXbv26fewP84888xk4lq1alXy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\n",
+      "text/plain": [
+       "<Figure size 432x288 with 1 Axes>"
+      ]
+     },
+     "metadata": {
+      "needs_background": "light"
+     },
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "plot_ratio = data_bar['Y'].value_counts(normalize=True).rename('CompleteBarData').to_frame().join(data_bar_nokids_nofarming['Y'].value_counts(normalize=True).rename('BarWithNoKidsNoFarming'))\n",
+    "plot_ratio.plot(kind='bar', rot=0, xlabel='Acceptance Result', ylabel='Acceptance Rate')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 516,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>CompleteBarData</th>\n",
+       "      <th>BarWithNoKidsNoFarming</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>0</th>\n",
+       "      <td>0.589985</td>\n",
+       "      <td>0.282051</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>1</th>\n",
+       "      <td>0.410015</td>\n",
+       "      <td>0.717949</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "   CompleteBarData  BarWithNoKidsNoFarming\n",
+       "0         0.589985                0.282051\n",
+       "1         0.410015                0.717949"
+      ]
+     },
+     "execution_count": 516,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "plot_ratio"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 528,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "application/vnd.plotly.v1+json": {
+       "config": {
+        "plotlyServerURL": "https://plot.ly"
+       },
+       "data": [
+        {
+         "alignmentgroup": "True",
+         "hovertemplate": "variable=CompleteBarData<br>Acceptance Result=%{x}<br>Acceptance Rate=%{y}<extra></extra>",
+         "legendgroup": "CompleteBarData",
+         "marker": {
+          "color": "#636efa",
+          "pattern": {
+           "shape": ""
+          }
+         },
+         "name": "CompleteBarData",
+         "offsetgroup": "CompleteBarData",
+         "orientation": "v",
+         "showlegend": true,
+         "textposition": "auto",
+         "type": "bar",
+         "x": [
+          0,
+          1
+         ],
+         "xaxis": "x",
+         "y": [
+          0.5899851264253843,
+          0.41001487357461575
+         ],
+         "yaxis": "y"
+        },
+        {
+         "alignmentgroup": "True",
+         "hovertemplate": "variable=BarWithNoKidsNoFarming<br>Acceptance Result=%{x}<br>Acceptance Rate=%{y}<extra></extra>",
+         "legendgroup": "BarWithNoKidsNoFarming",
+         "marker": {
+          "color": "#EF553B",
+          "pattern": {
+           "shape": ""
+          }
+         },
+         "name": "BarWithNoKidsNoFarming",
+         "offsetgroup": "BarWithNoKidsNoFarming",
+         "orientation": "v",
+         "showlegend": true,
+         "textposition": "auto",
+         "type": "bar",
+         "x": [
+          0,
+          1
+         ],
+         "xaxis": "x",
+         "y": [
+          0.28205128205128205,
+          0.717948717948718
+         ],
+         "yaxis": "y"
+        }
+       ],
+       "layout": {
+        "barmode": "relative",
+        "legend": {
+         "title": {
+          "text": "variable"
+         },
+         "tracegroupgap": 0
+        },
+        "template": {
+         "data": {
+          "bar": [
+           {
+            "error_x": {
+             "color": "#2a3f5f"
+            },
+            "error_y": {
+             "color": "#2a3f5f"
+            },
+            "marker": {
+             "line": {
+              "color": "#E5ECF6",
+              "width": 0.5
+             },
+             "pattern": {
+              "fillmode": "overlay",
+              "size": 10,
+              "solidity": 0.2
+             }
+            },
+            "type": "bar"
+           }
+          ],
+          "barpolar": [
+           {
+            "marker": {
+             "line": {
+              "color": "#E5ECF6",
+              "width": 0.5
+             },
+             "pattern": {
+              "fillmode": "overlay",
+              "size": 10,
+              "solidity": 0.2
+             }
+            },
+            "type": "barpolar"
+           }
+          ],
+          "carpet": [
+           {
+            "aaxis": {
+             "endlinecolor": "#2a3f5f",
+             "gridcolor": "white",
+             "linecolor": "white",
+             "minorgridcolor": "white",
+             "startlinecolor": "#2a3f5f"
+            },
+            "baxis": {
+             "endlinecolor": "#2a3f5f",
+             "gridcolor": "white",
+             "linecolor": "white",
+             "minorgridcolor": "white",
+             "startlinecolor": "#2a3f5f"
+            },
+            "type": "carpet"
+           }
+          ],
+          "choropleth": [
+           {
+            "colorbar": {
+             "outlinewidth": 0,
+             "ticks": ""
+            },
+            "type": "choropleth"
+           }
+          ],
+          "contour": [
+           {
+            "colorbar": {
+             "outlinewidth": 0,
+             "ticks": ""
+            },
+            "colorscale": [
+             [
+              0,
+              "#0d0887"
+             ],
+             [
+              0.1111111111111111,
+              "#46039f"
+             ],
+             [
+              0.2222222222222222,
+              "#7201a8"
+             ],
+             [
+              0.3333333333333333,
+              "#9c179e"
+             ],
+             [
+              0.4444444444444444,
+              "#bd3786"
+             ],
+             [
+              0.5555555555555556,
+              "#d8576b"
+             ],
+             [
+              0.6666666666666666,
+              "#ed7953"
+             ],
+             [
+              0.7777777777777778,
+              "#fb9f3a"
+             ],
+             [
+              0.8888888888888888,
+              "#fdca26"
+             ],
+             [
+              1,
+              "#f0f921"
+             ]
+            ],
+            "type": "contour"
+           }
+          ],
+          "contourcarpet": [
+           {
+            "colorbar": {
+             "outlinewidth": 0,
+             "ticks": ""
+            },
+            "type": "contourcarpet"
+           }
+          ],
+          "heatmap": [
+           {
+            "colorbar": {
+             "outlinewidth": 0,
+             "ticks": ""
+            },
+            "colorscale": [
+             [
+              0,
+              "#0d0887"
+             ],
+             [
+              0.1111111111111111,
+              "#46039f"
+             ],
+             [
+              0.2222222222222222,
+              "#7201a8"
+             ],
+             [
+              0.3333333333333333,
+              "#9c179e"
+             ],
+             [
+              0.4444444444444444,
+              "#bd3786"
+             ],
+             [
+              0.5555555555555556,
+              "#d8576b"
+             ],
+             [
+              0.6666666666666666,
+              "#ed7953"
+             ],
+             [
+              0.7777777777777778,
+              "#fb9f3a"
+             ],
+             [
+              0.8888888888888888,
+              "#fdca26"
+             ],
+             [
+              1,
+              "#f0f921"
+             ]
+            ],
+            "type": "heatmap"
+           }
+          ],
+          "heatmapgl": [
+           {
+            "colorbar": {
+             "outlinewidth": 0,
+             "ticks": ""
+            },
+            "colorscale": [
+             [
+              0,
+              "#0d0887"
+             ],
+             [
+              0.1111111111111111,
+              "#46039f"
+             ],
+             [
+              0.2222222222222222,
+              "#7201a8"
+             ],
+             [
+              0.3333333333333333,
+              "#9c179e"
+             ],
+             [
+              0.4444444444444444,
+              "#bd3786"
+             ],
+             [
+              0.5555555555555556,
+              "#d8576b"
+             ],
+             [
+              0.6666666666666666,
+              "#ed7953"
+             ],
+             [
+              0.7777777777777778,
+              "#fb9f3a"
+             ],
+             [
+              0.8888888888888888,
+              "#fdca26"
+             ],
+             [
+              1,
+              "#f0f921"
+             ]
+            ],
+            "type": "heatmapgl"
+           }
+          ],
+          "histogram": [
+           {
+            "marker": {
+             "pattern": {
+              "fillmode": "overlay",
+              "size": 10,
+              "solidity": 0.2
+             }
+            },
+            "type": "histogram"
+           }
+          ],
+          "histogram2d": [
+           {
+            "colorbar": {
+             "outlinewidth": 0,
+             "ticks": ""
+            },
+            "colorscale": [
+             [
+              0,
+              "#0d0887"
+             ],
+             [
+              0.1111111111111111,
+              "#46039f"
+             ],
+             [
+              0.2222222222222222,
+              "#7201a8"
+             ],
+             [
+              0.3333333333333333,
+              "#9c179e"
+             ],
+             [
+              0.4444444444444444,
+              "#bd3786"
+             ],
+             [
+              0.5555555555555556,
+              "#d8576b"
+             ],
+             [
+              0.6666666666666666,
+              "#ed7953"
+             ],
+             [
+              0.7777777777777778,
+              "#fb9f3a"
+             ],
+             [
+              0.8888888888888888,
+              "#fdca26"
+             ],
+             [
+              1,
+              "#f0f921"
+             ]
+            ],
+            "type": "histogram2d"
+           }
+          ],
+          "histogram2dcontour": [
+           {
+            "colorbar": {
+             "outlinewidth": 0,
+             "ticks": ""
+            },
+            "colorscale": [
+             [
+              0,
+              "#0d0887"
+             ],
+             [
+              0.1111111111111111,
+              "#46039f"
+             ],
+             [
+              0.2222222222222222,
+              "#7201a8"
+             ],
+             [
+              0.3333333333333333,
+              "#9c179e"
+             ],
+             [
+              0.4444444444444444,
+              "#bd3786"
+             ],
+             [
+              0.5555555555555556,
+              "#d8576b"
+             ],
+             [
+              0.6666666666666666,
+              "#ed7953"
+             ],
+             [
+              0.7777777777777778,
+              "#fb9f3a"
+             ],
+             [
+              0.8888888888888888,
+              "#fdca26"
+             ],
+             [
+              1,
+              "#f0f921"
+             ]
+            ],
+            "type": "histogram2dcontour"
+           }
+          ],
+          "mesh3d": [
+           {
+            "colorbar": {
+             "outlinewidth": 0,
+             "ticks": ""
+            },
+            "type": "mesh3d"
+           }
+          ],
+          "parcoords": [
+           {
+            "line": {
+             "colorbar": {
+              "outlinewidth": 0,
+              "ticks": ""
+             }
+            },
+            "type": "parcoords"
+           }
+          ],
+          "pie": [
+           {
+            "automargin": true,
+            "type": "pie"
+           }
+          ],
+          "scatter": [
+           {
+            "fillpattern": {
+             "fillmode": "overlay",
+             "size": 10,
+             "solidity": 0.2
+            },
+            "type": "scatter"
+           }
+          ],
+          "scatter3d": [
+           {
+            "line": {
+             "colorbar": {
+              "outlinewidth": 0,
+              "ticks": ""
+             }
+            },
+            "marker": {
+             "colorbar": {
+              "outlinewidth": 0,
+              "ticks": ""
+             }
+            },
+            "type": "scatter3d"
+           }
+          ],
+          "scattercarpet": [
+           {
+            "marker": {
+             "colorbar": {
+              "outlinewidth": 0,
+              "ticks": ""
+             }
+            },
+            "type": "scattercarpet"
+           }
+          ],
+          "scattergeo": [
+           {
+            "marker": {
+             "colorbar": {
+              "outlinewidth": 0,
+              "ticks": ""
+             }
+            },
+            "type": "scattergeo"
+           }
+          ],
+          "scattergl": [
+           {
+            "marker": {
+             "colorbar": {
+              "outlinewidth": 0,
+              "ticks": ""
+             }
+            },
+            "type": "scattergl"
+           }
+          ],
+          "scattermapbox": [
+           {
+            "marker": {
+             "colorbar": {
+              "outlinewidth": 0,
+              "ticks": ""
+             }
+            },
+            "type": "scattermapbox"
+           }
+          ],
+          "scatterpolar": [
+           {
+            "marker": {
+             "colorbar": {
+              "outlinewidth": 0,
+              "ticks": ""
+             }
+            },
+            "type": "scatterpolar"
+           }
+          ],
+          "scatterpolargl": [
+           {
+            "marker": {
+             "colorbar": {
+              "outlinewidth": 0,
+              "ticks": ""
+             }
+            },
+            "type": "scatterpolargl"
+           }
+          ],
+          "scatterternary": [
+           {
+            "marker": {
+             "colorbar": {
+              "outlinewidth": 0,
+              "ticks": ""
+             }
+            },
+            "type": "scatterternary"
+           }
+          ],
+          "surface": [
+           {
+            "colorbar": {
+             "outlinewidth": 0,
+             "ticks": ""
+            },
+            "colorscale": [
+             [
+              0,
+              "#0d0887"
+             ],
+             [
+              0.1111111111111111,
+              "#46039f"
+             ],
+             [
+              0.2222222222222222,
+              "#7201a8"
+             ],
+             [
+              0.3333333333333333,
+              "#9c179e"
+             ],
+             [
+              0.4444444444444444,
+              "#bd3786"
+             ],
+             [
+              0.5555555555555556,
+              "#d8576b"
+             ],
+             [
+              0.6666666666666666,
+              "#ed7953"
+             ],
+             [
+              0.7777777777777778,
+              "#fb9f3a"
+             ],
+             [
+              0.8888888888888888,
+              "#fdca26"
+             ],
+             [
+              1,
+              "#f0f921"
+             ]
+            ],
+            "type": "surface"
+           }
+          ],
+          "table": [
+           {
+            "cells": {
+             "fill": {
+              "color": "#EBF0F8"
+             },
+             "line": {
+              "color": "white"
+             }
+            },
+            "header": {
+             "fill": {
+              "color": "#C8D4E3"
+             },
+             "line": {
+              "color": "white"
+             }
+            },
+            "type": "table"
+           }
+          ]
+         },
+         "layout": {
+          "annotationdefaults": {
+           "arrowcolor": "#2a3f5f",
+           "arrowhead": 0,
+           "arrowwidth": 1
+          },
+          "autotypenumbers": "strict",
+          "coloraxis": {
+           "colorbar": {
+            "outlinewidth": 0,
+            "ticks": ""
+           }
+          },
+          "colorscale": {
+           "diverging": [
+            [
+             0,
+             "#8e0152"
+            ],
+            [
+             0.1,
+             "#c51b7d"
+            ],
+            [
+             0.2,
+             "#de77ae"
+            ],
+            [
+             0.3,
+             "#f1b6da"
+            ],
+            [
+             0.4,
+             "#fde0ef"
+            ],
+            [
+             0.5,
+             "#f7f7f7"
+            ],
+            [
+             0.6,
+             "#e6f5d0"
+            ],
+            [
+             0.7,
+             "#b8e186"
+            ],
+            [
+             0.8,
+             "#7fbc41"
+            ],
+            [
+             0.9,
+             "#4d9221"
+            ],
+            [
+             1,
+             "#276419"
+            ]
+           ],
+           "sequential": [
+            [
+             0,
+             "#0d0887"
+            ],
+            [
+             0.1111111111111111,
+             "#46039f"
+            ],
+            [
+             0.2222222222222222,
+             "#7201a8"
+            ],
+            [
+             0.3333333333333333,
+             "#9c179e"
+            ],
+            [
+             0.4444444444444444,
+             "#bd3786"
+            ],
+            [
+             0.5555555555555556,
+             "#d8576b"
+            ],
+            [
+             0.6666666666666666,
+             "#ed7953"
+            ],
+            [
+             0.7777777777777778,
+             "#fb9f3a"
+            ],
+            [
+             0.8888888888888888,
+             "#fdca26"
+            ],
+            [
+             1,
+             "#f0f921"
+            ]
+           ],
+           "sequentialminus": [
+            [
+             0,
+             "#0d0887"
+            ],
+            [
+             0.1111111111111111,
+             "#46039f"
+            ],
+            [
+             0.2222222222222222,
+             "#7201a8"
+            ],
+            [
+             0.3333333333333333,
+             "#9c179e"
+            ],
+            [
+             0.4444444444444444,
+             "#bd3786"
+            ],
+            [
+             0.5555555555555556,
+             "#d8576b"
+            ],
+            [
+             0.6666666666666666,
+             "#ed7953"
+            ],
+            [
+             0.7777777777777778,
+             "#fb9f3a"
+            ],
+            [
+             0.8888888888888888,
+             "#fdca26"
+            ],
+            [
+             1,
+             "#f0f921"
+            ]
+           ]
+          },
+          "colorway": [
+           "#636efa",
+           "#EF553B",
+           "#00cc96",
+           "#ab63fa",
+           "#FFA15A",
+           "#19d3f3",
+           "#FF6692",
+           "#B6E880",
+           "#FF97FF",
+           "#FECB52"
+          ],
+          "font": {
+           "color": "#2a3f5f"
+          },
+          "geo": {
+           "bgcolor": "white",
+           "lakecolor": "white",
+           "landcolor": "#E5ECF6",
+           "showlakes": true,
+           "showland": true,
+           "subunitcolor": "white"
+          },
+          "hoverlabel": {
+           "align": "left"
+          },
+          "hovermode": "closest",
+          "mapbox": {
+           "style": "light"
+          },
+          "paper_bgcolor": "white",
+          "plot_bgcolor": "#E5ECF6",
+          "polar": {
+           "angularaxis": {
+            "gridcolor": "white",
+            "linecolor": "white",
+            "ticks": ""
+           },
+           "bgcolor": "#E5ECF6",
+           "radialaxis": {
+            "gridcolor": "white",
+            "linecolor": "white",
+            "ticks": ""
+           }
+          },
+          "scene": {
+           "xaxis": {
+            "backgroundcolor": "#E5ECF6",
+            "gridcolor": "white",
+            "gridwidth": 2,
+            "linecolor": "white",
+            "showbackground": true,
+            "ticks": "",
+            "zerolinecolor": "white"
+           },
+           "yaxis": {
+            "backgroundcolor": "#E5ECF6",
+            "gridcolor": "white",
+            "gridwidth": 2,
+            "linecolor": "white",
+            "showbackground": true,
+            "ticks": "",
+            "zerolinecolor": "white"
+           },
+           "zaxis": {
+            "backgroundcolor": "#E5ECF6",
+            "gridcolor": "white",
+            "gridwidth": 2,
+            "linecolor": "white",
+            "showbackground": true,
+            "ticks": "",
+            "zerolinecolor": "white"
+           }
+          },
+          "shapedefaults": {
+           "line": {
+            "color": "#2a3f5f"
+           }
+          },
+          "ternary": {
+           "aaxis": {
+            "gridcolor": "white",
+            "linecolor": "white",
+            "ticks": ""
+           },
+           "baxis": {
+            "gridcolor": "white",
+            "linecolor": "white",
+            "ticks": ""
+           },
+           "bgcolor": "#E5ECF6",
+           "caxis": {
+            "gridcolor": "white",
+            "linecolor": "white",
+            "ticks": ""
+           }
+          },
+          "title": {
+           "x": 0.05
+          },
+          "xaxis": {
+           "automargin": true,
+           "gridcolor": "white",
+           "linecolor": "white",
+           "ticks": "",
+           "title": {
+            "standoff": 15
+           },
+           "zerolinecolor": "white",
+           "zerolinewidth": 2
+          },
+          "yaxis": {
+           "automargin": true,
+           "gridcolor": "white",
+           "linecolor": "white",
+           "ticks": "",
+           "title": {
+            "standoff": 15
+           },
+           "zerolinecolor": "white",
+           "zerolinewidth": 2
+          }
+         }
+        },
+        "title": {
+         "text": "Passengers that were not a kid and had occupations other than farming"
+        },
+        "xaxis": {
+         "anchor": "y",
+         "domain": [
+          0,
+          1
+         ],
+         "title": {
+          "text": "Acceptance Result"
+         }
+        },
+        "yaxis": {
+         "anchor": "x",
+         "domain": [
+          0,
+          1
+         ],
+         "title": {
+          "text": "Acceptance Rate"
+         }
+        }
+       }
+      },
+      "text/html": [
+       "<div>                            <div id=\"eb28bc82-14b2-461b-abc0-121b687d6ad5\" class=\"plotly-graph-div\" style=\"height:525px; width:100%;\"></div>            <script type=\"text/javascript\">                require([\"plotly\"], function(Plotly) {                    window.PLOTLYENV=window.PLOTLYENV || {};                                    if (document.getElementById(\"eb28bc82-14b2-461b-abc0-121b687d6ad5\")) {                    Plotly.newPlot(                        \"eb28bc82-14b2-461b-abc0-121b687d6ad5\",                        [{\"alignmentgroup\":\"True\",\"hovertemplate\":\"variable=CompleteBarData<br>Acceptance Result=%{x}<br>Acceptance Rate=%{y}<extra></extra>\",\"legendgroup\":\"CompleteBarData\",\"marker\":{\"color\":\"#636efa\",\"pattern\":{\"shape\":\"\"}},\"name\":\"CompleteBarData\",\"offsetgroup\":\"CompleteBarData\",\"orientation\":\"v\",\"showlegend\":true,\"textposition\":\"auto\",\"x\":[0,1],\"xaxis\":\"x\",\"y\":[0.5899851264253843,0.41001487357461575],\"yaxis\":\"y\",\"type\":\"bar\"},{\"alignmentgroup\":\"True\",\"hovertemplate\":\"variable=BarWithNoKidsNoFarming<br>Acceptance Result=%{x}<br>Acceptance Rate=%{y}<extra></extra>\",\"legendgroup\":\"BarWithNoKidsNoFarming\",\"marker\":{\"color\":\"#EF553B\",\"pattern\":{\"shape\":\"\"}},\"name\":\"BarWithNoKidsNoFarming\",\"offsetgroup\":\"BarWithNoKidsNoFarming\",\"orientation\":\"v\",\"showlegend\":true,\"textposition\":\"auto\",\"x\":[0,1],\"xaxis\":\"x\",\"y\":[0.28205128205128205,0.717948717948718],\"yaxis\":\"y\",\"type\":\"bar\"}],                        {\"template\":{\"data\":{\"histogram2dcontour\":[{\"type\":\"histogram2dcontour\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"choropleth\":[{\"type\":\"choropleth\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}],\"histogram2d\":[{\"type\":\"histogram2d\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"heatmap\":[{\"type\":\"heatmap\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"heatmapgl\":[{\"type\":\"heatmapgl\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"contourcarpet\":[{\"type\":\"contourcarpet\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}],\"contour\":[{\"type\":\"contour\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"surface\":[{\"type\":\"surface\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"},\"colorscale\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]]}],\"mesh3d\":[{\"type\":\"mesh3d\",\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}],\"scatter\":[{\"fillpattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2},\"type\":\"scatter\"}],\"parcoords\":[{\"type\":\"parcoords\",\"line\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatterpolargl\":[{\"type\":\"scatterpolargl\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"bar\":[{\"error_x\":{\"color\":\"#2a3f5f\"},\"error_y\":{\"color\":\"#2a3f5f\"},\"marker\":{\"line\":{\"color\":\"#E5ECF6\",\"width\":0.5},\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"bar\"}],\"scattergeo\":[{\"type\":\"scattergeo\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatterpolar\":[{\"type\":\"scatterpolar\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"histogram\":[{\"marker\":{\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"histogram\"}],\"scattergl\":[{\"type\":\"scattergl\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatter3d\":[{\"type\":\"scatter3d\",\"line\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scattermapbox\":[{\"type\":\"scattermapbox\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scatterternary\":[{\"type\":\"scatterternary\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"scattercarpet\":[{\"type\":\"scattercarpet\",\"marker\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}}}],\"carpet\":[{\"aaxis\":{\"endlinecolor\":\"#2a3f5f\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"minorgridcolor\":\"white\",\"startlinecolor\":\"#2a3f5f\"},\"baxis\":{\"endlinecolor\":\"#2a3f5f\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"minorgridcolor\":\"white\",\"startlinecolor\":\"#2a3f5f\"},\"type\":\"carpet\"}],\"table\":[{\"cells\":{\"fill\":{\"color\":\"#EBF0F8\"},\"line\":{\"color\":\"white\"}},\"header\":{\"fill\":{\"color\":\"#C8D4E3\"},\"line\":{\"color\":\"white\"}},\"type\":\"table\"}],\"barpolar\":[{\"marker\":{\"line\":{\"color\":\"#E5ECF6\",\"width\":0.5},\"pattern\":{\"fillmode\":\"overlay\",\"size\":10,\"solidity\":0.2}},\"type\":\"barpolar\"}],\"pie\":[{\"automargin\":true,\"type\":\"pie\"}]},\"layout\":{\"autotypenumbers\":\"strict\",\"colorway\":[\"#636efa\",\"#EF553B\",\"#00cc96\",\"#ab63fa\",\"#FFA15A\",\"#19d3f3\",\"#FF6692\",\"#B6E880\",\"#FF97FF\",\"#FECB52\"],\"font\":{\"color\":\"#2a3f5f\"},\"hovermode\":\"closest\",\"hoverlabel\":{\"align\":\"left\"},\"paper_bgcolor\":\"white\",\"plot_bgcolor\":\"#E5ECF6\",\"polar\":{\"bgcolor\":\"#E5ECF6\",\"angularaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"},\"radialaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"}},\"ternary\":{\"bgcolor\":\"#E5ECF6\",\"aaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"},\"baxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"},\"caxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\"}},\"coloraxis\":{\"colorbar\":{\"outlinewidth\":0,\"ticks\":\"\"}},\"colorscale\":{\"sequential\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]],\"sequentialminus\":[[0.0,\"#0d0887\"],[0.1111111111111111,\"#46039f\"],[0.2222222222222222,\"#7201a8\"],[0.3333333333333333,\"#9c179e\"],[0.4444444444444444,\"#bd3786\"],[0.5555555555555556,\"#d8576b\"],[0.6666666666666666,\"#ed7953\"],[0.7777777777777778,\"#fb9f3a\"],[0.8888888888888888,\"#fdca26\"],[1.0,\"#f0f921\"]],\"diverging\":[[0,\"#8e0152\"],[0.1,\"#c51b7d\"],[0.2,\"#de77ae\"],[0.3,\"#f1b6da\"],[0.4,\"#fde0ef\"],[0.5,\"#f7f7f7\"],[0.6,\"#e6f5d0\"],[0.7,\"#b8e186\"],[0.8,\"#7fbc41\"],[0.9,\"#4d9221\"],[1,\"#276419\"]]},\"xaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\",\"title\":{\"standoff\":15},\"zerolinecolor\":\"white\",\"automargin\":true,\"zerolinewidth\":2},\"yaxis\":{\"gridcolor\":\"white\",\"linecolor\":\"white\",\"ticks\":\"\",\"title\":{\"standoff\":15},\"zerolinecolor\":\"white\",\"automargin\":true,\"zerolinewidth\":2},\"scene\":{\"xaxis\":{\"backgroundcolor\":\"#E5ECF6\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"white\",\"gridwidth\":2},\"yaxis\":{\"backgroundcolor\":\"#E5ECF6\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"white\",\"gridwidth\":2},\"zaxis\":{\"backgroundcolor\":\"#E5ECF6\",\"gridcolor\":\"white\",\"linecolor\":\"white\",\"showbackground\":true,\"ticks\":\"\",\"zerolinecolor\":\"white\",\"gridwidth\":2}},\"shapedefaults\":{\"line\":{\"color\":\"#2a3f5f\"}},\"annotationdefaults\":{\"arrowcolor\":\"#2a3f5f\",\"arrowhead\":0,\"arrowwidth\":1},\"geo\":{\"bgcolor\":\"white\",\"landcolor\":\"#E5ECF6\",\"subunitcolor\":\"white\",\"showland\":true,\"showlakes\":true,\"lakecolor\":\"white\"},\"title\":{\"x\":0.05},\"mapbox\":{\"style\":\"light\"}}},\"xaxis\":{\"anchor\":\"y\",\"domain\":[0.0,1.0],\"title\":{\"text\":\"Acceptance Result\"}},\"yaxis\":{\"anchor\":\"x\",\"domain\":[0.0,1.0],\"title\":{\"text\":\"Acceptance Rate\"}},\"legend\":{\"title\":{\"text\":\"variable\"},\"tracegroupgap\":0},\"title\":{\"text\":\"Passengers that were not a kid and had occupations other than farming\"},\"barmode\":\"relative\"},                        {\"responsive\": true}                    ).then(function(){\n",
+       "                            \n",
+       "var gd = document.getElementById('eb28bc82-14b2-461b-abc0-121b687d6ad5');\n",
+       "var x = new MutationObserver(function (mutations, observer) {{\n",
+       "        var display = window.getComputedStyle(gd).display;\n",
+       "        if (!display || display === 'none') {{\n",
+       "            console.log([gd, 'removed!']);\n",
+       "            Plotly.purge(gd);\n",
+       "            observer.disconnect();\n",
+       "        }}\n",
+       "}});\n",
+       "\n",
+       "// Listen for the removal of the full notebook cells\n",
+       "var notebookContainer = gd.closest('#notebook-container');\n",
+       "if (notebookContainer) {{\n",
+       "    x.observe(notebookContainer, {childList: true});\n",
+       "}}\n",
+       "\n",
+       "// Listen for the clearing of the current output cell\n",
+       "var outputEl = gd.closest('.output');\n",
+       "if (outputEl) {{\n",
+       "    x.observe(outputEl, {childList: true});\n",
+       "}}\n",
+       "\n",
+       "                        })                };                });            </script>        </div>"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "fig = px.bar(plot_ratio,  title=\"Passengers that were not a kid and had occupations other than farming\", \n",
+    "            labels={'index': 'Acceptance Result', 'value': 'Acceptance Rate'})\n",
+    "fig.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "6. Compare the acceptance rates between those drivers who:\n",
+    "\n",
+    "- go to bars more than once a month, had passengers that were not a kid, and were not widowed *OR*\n",
+    "- go to bars more than once a month and are under the age of 30 *OR*\n",
+    "- go to cheap restaurants more than 4 times a month and income is less than 50K. \n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 580,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "array(['Unmarried partner', 'Single', 'Married partner', 'Divorced',\n",
+       "       'Widowed'], dtype=object)"
+      ]
+     },
+     "execution_count": 580,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "data_bar.maritalStatus.unique()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 621,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "1    0.717949\n",
+       "0    0.282051\n",
+       "Name: Y, dtype: float64"
+      ]
+     },
+     "execution_count": 621,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "# go to bars more than once a month, had passengers that were not a kid, and were not widowed\n",
+    "passanger_filter = ['Kid(s)', 'Alone']\n",
+    "bar_frequency_filter = ['1~3', '4~8', 'gt8']\n",
+    "age_filter_lt30 = ['21', '26', 'below21']\n",
+    "\n",
+    "data_bar_multi = data_bar.loc[data_bar['Bar'].apply(lambda x: x in bar_frequency_filter) & \n",
+    "                           ~data_bar['passanger'].isin(passanger_filter) & \n",
+    "                           ~data_bar['maritalStatus'].isin(['Widowed']) ]\n",
+    "data_bar_multi['Y'].value_counts(normalize = True)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 620,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "1    0.721739\n",
+       "0    0.278261\n",
+       "Name: Y, dtype: float64"
+      ]
+     },
+     "execution_count": 620,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "#go to bars more than once a month and are under the age of 30 \n",
+    "data_bar_below30 = data_bar.loc[data_bar['Bar'].apply(lambda x: x in bar_frequency_filter) \n",
+    "                                & data_bar['age'].apply(lambda x: x in age_filter_lt30)]\n",
+    "\n",
+    "data_bar_below30['Y'].value_counts(normalize = True)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 655,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "0    0.546512\n",
+       "1    0.453488\n",
+       "Name: Y, dtype: float64"
+      ]
+     },
+     "execution_count": 655,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "#go to cheap restaurants more than 4 times a month and income is less than 50K\n",
+    "income_lt50_filter = ['$37500 - $49999', '$12500 - $24999', '$25000 - $37499', 'Less than $12500']\n",
+    "#data.loc[lambda x: x['coupon'] == 'Restaurant(<20)']\n",
+    "data_restu_lt50k = data_bar.loc[data['income'].apply(lambda x: x in income_lt50_filter) & \n",
+    "                                                                            data['RestaurantLessThan20'].apply(lambda x: x in ['4~8', 'gt8'])]\n",
+    "\n",
+    "data_restu_lt50k['Y'].value_counts(normalize = True)\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "7.  Based on these observations, what do you hypothesize about drivers who accepted the bar coupons?"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 656,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "0    0.589985\n",
+       "1    0.410015\n",
+       "Name: CompleteBarData, dtype: float64"
+      ]
+     },
+     "execution_count": 656,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "plot_ratio1 = data_bar['Y'].value_counts(normalize=True).rename('CompleteBarData')\n",
+    "plot_ratio1"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 673,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>CompleteBarData</th>\n",
+       "      <th>BarWithNoKidsNoFarming</th>\n",
+       "      <th>BarNoKidWidow</th>\n",
+       "      <th>BarUnderAge30</th>\n",
+       "      <th>Bar4xMonthlt50k</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>0</th>\n",
+       "      <td>0.589985</td>\n",
+       "      <td>0.282051</td>\n",
+       "      <td>0.282051</td>\n",
+       "      <td>0.278261</td>\n",
+       "      <td>0.546512</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>1</th>\n",
+       "      <td>0.410015</td>\n",
+       "      <td>0.717949</td>\n",
+       "      <td>0.717949</td>\n",
+       "      <td>0.721739</td>\n",
+       "      <td>0.453488</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "   CompleteBarData  BarWithNoKidsNoFarming  BarNoKidWidow  BarUnderAge30  \\\n",
+       "0         0.589985                0.282051       0.282051       0.278261   \n",
+       "1         0.410015                0.717949       0.717949       0.721739   \n",
+       "\n",
+       "   Bar4xMonthlt50k  \n",
+       "0         0.546512  \n",
+       "1         0.453488  "
+      ]
+     },
+     "execution_count": 673,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "bar_plot_ratio = data_bar['Y'].value_counts(normalize=True).rename('CompleteBarData').to_frame().join(data_bar_nokids_nofarming['Y'].value_counts(normalize=True).rename('BarWithNoKidsNoFarming')).join(data_bar_multi['Y'].value_counts(normalize = True).rename('BarNoKidWidow')).join(data_bar_below30['Y'].value_counts(normalize = True).rename('BarUnderAge30')).join(data_restu_lt50k['Y'].value_counts(normalize = True).rename('Bar4xMonthlt50k'))\n",
+    "bar_plot_ratio\n",
+    "#plot_ratio.plot(kind='bar', rot=0, xlabel='Acceptance Result', ylabel='Acceptance Rate')"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Independent Investigation\n",
+    "\n",
+    "Using the bar coupon example as motivation, you are to explore one of the other coupon groups and try to determine the characteristics of passengers who accept the coupons.  "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.8.8"
+  },
+  "widgets": {
+   "application/vnd.jupyter.widget-state+json": {
+    "state": {},
+    "version_major": 2,
+    "version_minor": 0
+   }
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 4
+}
